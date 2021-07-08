@@ -1,13 +1,14 @@
-# Modifique as variaveis conforme o seu setup.
 include .env
 
 JAVA=java
 JAVAC=javac
 
-# Eu uso ROOT como o diretório raiz para os meus labs.
+# Diretório raiz do projeto (variável root vinda do arquivo .env)
+# Altere o seu arquivo .env e coloque o caminho que você estiver usando
 ROOT=${root}
 REPO=$(ROOT)/Gopiler
 
+# O ANTLR deve estar instalado numa pasta chamada tools na raiz do projeto
 ANTLR_PATH=$(ROOT)/tools/antlr-4.9.2-complete.jar
 CLASS_PATH_OPTION=-cp .:$(ANTLR_PATH)
 
@@ -24,8 +25,8 @@ IN=$(REPO)/tests
 all: antlr javac
 	@echo "Done."
 
-antlr: GoLexer.g
-	$(ANTLR4) -o $(GEN_PATH) GoLexer.g
+antlr: GoLexer.g4
+	$(ANTLR4) -o $(GEN_PATH) GoLexer.g4
 
 javac:
 	$(JAVAC) $(CLASS_PATH_OPTION) $(GEN_PATH)/*.java
