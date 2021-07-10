@@ -5,11 +5,10 @@ JAVAC=javac
 
 # Diretório raiz do projeto (variável root vinda do arquivo .env)
 # Altere o seu arquivo .env e coloque o caminho que você estiver usando
-ROOT=${root}
-REPO=$(ROOT)/Gopiler
+REPO=${root}/Gopiler
 
 # O ANTLR deve estar instalado numa pasta chamada tools na raiz do projeto
-ANTLR_PATH=$(ROOT)/tools/antlr-4.9.2-complete.jar
+ANTLR_PATH=$(REPO)/tools/antlr-4.9.2-complete.jar
 CLASS_PATH_OPTION=-cp .:$(ANTLR_PATH)
 
 # Comandos como descritos na página do ANTLR.
@@ -32,7 +31,7 @@ javac:
 	$(JAVAC) $(CLASS_PATH_OPTION) $(GEN_PATH)/*.java
 
 run:
-	cd $(GEN_PATH) && $(GRUN) GoLexer tokens -tokens $(FILE)
+	cd $(GEN_PATH) && $(GRUN) GoLexer tokens -tokens $(REPO)/$(FILE)
 
 runall:
 	-for FILE in $(IN)/*.go; do \
