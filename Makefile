@@ -16,7 +16,7 @@ ANTLR4=$(JAVA) -jar $(ANTLR_PATH)
 GRUN=$(JAVA) $(CLASS_PATH_OPTION) org.antlr.v4.gui.TestRig
 
 # Diretório para aonde vão os arquivos gerados.
-GEN_PATH=lexer
+GEN_PATH=parser
 
 # Diretório para os casos de teste
 IN=$(REPO)/tests
@@ -24,14 +24,14 @@ IN=$(REPO)/tests
 all: antlr javac
 	@echo "Done."
 
-antlr: GoLexer.g4
-	$(ANTLR4) -o $(GEN_PATH) GoLexer.g4
+antlr: GoLexer.g4 GoParser.g4
+	$(ANTLR4) -no-listener -o $(GEN_PATH) GoLexer.g4 GoParser.g4
 
 javac:
 	$(JAVAC) $(CLASS_PATH_OPTION) $(GEN_PATH)/*.java
 
 run:
-	cd $(GEN_PATH) && $(GRUN) GoLexer tokens -tokens $(REPO)/$(FILE)
+	cd $(GEN_PATH) && $(GRUN) Go program $(REPO)/$(FILE)
 
 runall:
 	-for FILE in $(IN)/*.go; do \
