@@ -63,6 +63,14 @@ FOR                    : 'for';
 IMPORT                 : 'import';
 RETURN                 : 'return';
 VAR                    : 'var';
+INT                    : 'int';
+STRING                 : 'string';
+BOOL                   : 'bool';
+
+BOOLEAN_LIT            : TRUE | FALSE;
+
+TRUE                   : 'true';
+FALSE                  : 'false';
 
 NIL_LIT                : 'nil';
 
