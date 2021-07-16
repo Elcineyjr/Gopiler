@@ -37,7 +37,7 @@ runall:
 	-for FILE in $(IN)/*.go; do \
 	 	cd $(GEN_PATH) && \
 	 	echo -e "\nRunning $${FILE}" && \
-	 	$(GRUN) GoLexer tokens -tokens $${FILE} && \
+	 	$(GRUN) Go program $${FILE} && \
 	 	cd .. ; \
 	done;
 
