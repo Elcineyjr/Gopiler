@@ -8,7 +8,7 @@ Create a file called `.env` and add a variable with the folder's path (the one w
 root=/home/user/Desktop
 ```
 
-Now open the terminal and compile the lexer with
+Now open the terminal and compile the parser with
 ```
 make
 ```
