@@ -5,7 +5,7 @@ options {
 }
 
 program:
-  PACKAGE IDENTIFIER import_sect func
+  PACKAGE IDENTIFIER import_sect? func
 ;
 
 import_sect: 
@@ -24,13 +24,12 @@ func:
 // Declarations
 
 var_declaration:
-  VAR IDENTIFIER (var_types? ASSIGN var_value_types | array_declaration)
-| VAR IDENTIFIER var_types
-| IDENTIFIER DECLARE_ASSIGN (var_value_types | array_declaration)
+  VAR IDENTIFIER (var_types | var_types? ASSIGN (var_value_types | expression) | array_declaration) SEMI?
+| IDENTIFIER DECLARE_ASSIGN (var_value_types | array_declaration) SEMI?
 ;  
 
 array_declaration:
-  L_BRACKET DECIMAL_LIT R_BRACKET var_types
+  L_BRACKET DECIMAL_LIT R_BRACKET var_types (L_CURLY ((var_value_types COMMA)* var_value_types)? R_CURLY)?
 ;
 
 // Statements
@@ -53,15 +52,13 @@ if_statement:
 ;
 
 for_statement:
-  FOR expression statement_section+
+  FOR expression? statement_section+
 | FOR var_declaration SEMI expression SEMI assign_statement statement_section+
-| FOR statement_section+
 ;
 
 assign_statement: 
-  IDENTIFIER ASSIGN expression
-| IDENTIFIER (PLUS_PLUS | MINUS_MINUS)
-| IDENTIFIER L_BRACKET DECIMAL_LIT R_BRACKET ASSIGN expression
+  IDENTIFIER (L_BRACKET expression R_BRACKET)? (ASSIGN | MINUS_ASSIGN | PLUS_ASSIGN) expression SEMI?
+| IDENTIFIER (PLUS_PLUS | MINUS_MINUS) SEMI?
 ;
 
 switch_statement:
@@ -80,7 +77,7 @@ expression:
 | expression relation_operators expression
 | L_PAREN expression R_PAREN
 | var_value_types
-| IDENTIFIER
+| IDENTIFIER (L_BRACKET expression R_BRACKET)?
 ;
 
 // Relation operators

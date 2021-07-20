@@ -107,6 +107,9 @@ LESS                   : '<';
 LESS_OR_EQUALS         : '<=';
 GREATER                : '>';
 GREATER_OR_EQUALS      : '>=';
+PLUS_ASSIGN            : '+=';
+MINUS_ASSIGN           : '-=';
+
 
 // Arithmetic operators
 
