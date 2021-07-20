@@ -1,16 +1,18 @@
 package main
 
-import "fmt"
-
+/*
+ * Demonstrates the possible ways to declare an array and assign values to it
+ */
 func main() {
-	var x = 100
+
+    // Here we create an array that will hold exactly 5 ints
 	var a [5]int
-    // fmt.Println("emp:", a)
 
-	a[3] = 100
-    a[4] = x
-	
-    // fmt.Println("set:", a)
-    // fmt.Println("get:", a[4])
-
+    // Use this syntax to declare and initialize an array in one line.
+    b := [2]string{"Hello", "World"}
+    
+    // Assign a value to array at the specified index
+	a[3] = 10
+	var val = 100
+    a[4] = val
 }

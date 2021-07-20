@@ -1,14 +1,14 @@
+package main
+
 /* 
  * Simple program that prints basic arithmetic operations
 */
-package main
-
-import "fmt"
-
 func main() {
-	// fmt.Println("1 + 2 = ", 1+2)	// Addition
-	// fmt.Println("5 * 2 = ", 5*2)	// Multiplication
-	// fmt.Println("10 - 2 = ", 10-2)	// Subtraction
-	// fmt.Println("10 / 2 = ", 10/2)	// Division
-	// fmt.Println("10 % 2 = ", 10%2)	// Remainder
+
+	var add = 1 + 2
+	var mult = 5 * 2
+	var sub = 10 - 2
+	var div = 20 / 2
+	var rem = 4 % 2
+
 }
