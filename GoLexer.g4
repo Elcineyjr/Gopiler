@@ -66,6 +66,7 @@ VAR                    : 'var';
 INT                    : 'int';
 STRING                 : 'string';
 BOOL                   : 'bool';
+FLOAT32                : 'float32';
 
 BOOLEAN_LIT            : TRUE | FALSE;
 
@@ -73,6 +74,8 @@ TRUE                   : 'true';
 FALSE                  : 'false';
 
 NIL_LIT                : 'nil';
+
+MAIN                   : 'main';
 
 IDENTIFIER             : LETTER (LETTER | UNICODE_DIGIT)*;
 
