@@ -2,19 +2,7 @@ package main
 
 /* A program that determines the season of the year given a day and a month */
 func main() {
-	var months [12] int
-	months[0] = 31
-	months[1] = 28
-	months[2] = 31
-	months[3] = 30
-	months[4] = 31
-	months[5] = 30
-	months[6] = 31
-	months[7] = 31
-	months[8] = 30
-	months[9] = 31
-	months[10] = 30
-	months[11] = 31
+	months := [12] int{31,28,31,30,31,30,31,31,30,31,30,31}
 	
 	day := 14
 	month := 8
