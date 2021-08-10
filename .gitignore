@@ -1,4 +1,6 @@
 .antlr
 .env
+.idea
+Gopiler.iml
 /lexer
 /parser
