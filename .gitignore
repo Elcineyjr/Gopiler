@@ -1,6 +1,10 @@
 .antlr
 .env
-.idea
-Gopiler.iml
-/lexer
-/parser
+.classpath
+.project
+.settings/
+target
+/.vscode
+lexer
+parser
+bin

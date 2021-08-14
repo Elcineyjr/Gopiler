@@ -102,18 +102,18 @@ case_statement:
 // Expression
 
 expression:
-  expression (STAR | DIV | MOD) expression
-| expression (PLUS | MINUS) expression
-| expression relation_operators expression
-| L_PAREN expression R_PAREN
-| var_value_types
-| IDENTIFIER (L_BRACKET expression R_BRACKET)?
-| func_call
+  expression (STAR | DIV | MOD) expression        
+| expression (PLUS | MINUS) expression            
+| expression relational_operators expression      
+| L_PAREN expression R_PAREN                      
+| var_value_types                                 
+| IDENTIFIER (L_BRACKET expression R_BRACKET)?    
+| func_call                                       
 ;
 
 // Relation operators
 
-relation_operators:
+relational_operators:
   EQUALS
 | NOT_EQUALS
 | LESS
@@ -125,20 +125,20 @@ relation_operators:
 // Var types and values
 
 var_types: 
-  INT
-| STRING
-| BOOL
-| FLOAT32
+  INT         
+| STRING      
+| BOOL        
+| FLOAT32     
 ;
 
 var_value_types : 
-  DECIMAL_LIT 
-| BINARY_LIT  
-| OCTAL_LIT 
-| HEX_LIT
-| FLOAT_LIT
-| DECIMAL_FLOAT_LIT 
-| HEX_FLOAT_LIT
-| INTERPRETED_STRING_LIT
-| BOOLEAN_LIT
+  DECIMAL_LIT               
+| BINARY_LIT                
+| OCTAL_LIT                 
+| HEX_LIT                   
+| FLOAT_LIT                 
+| DECIMAL_FLOAT_LIT         
+| HEX_FLOAT_LIT             
+| INTERPRETED_STRING_LIT    
+| BOOLEAN_LIT               
 ;
