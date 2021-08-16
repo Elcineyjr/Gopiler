@@ -1,8 +1,6 @@
 JAVA=java
 JAVAC=javac
 
-REPO=$(shell pwd)
-
 # O ANTLR deve estar instalado numa pasta chamada tools na raiz do projeto
 ANTLR_PATH=tools/antlr-4.9.2-complete.jar
 CLASS_PATH_OPTION=-cp .:$(ANTLR_PATH)
@@ -23,7 +21,7 @@ MAIN_PATH=$(SOURCE_PATH)/checker
 BIN_PATH=$(SOURCE_PATH)/bin
 
 # Diretório para os casos de teste
-IN=$(REPO)/tests
+IN=tests
 
 all: antlr javac
 	@echo -e "\nDone."
@@ -41,12 +39,13 @@ javac:
 	$(JAVAC) $(CLASS_PATH_OPTION) -d $(BIN_PATH) $(SOURCE_PATH)/*/*.java
 
 run:
-	$(JAVA) $(CLASS_PATH_OPTION):$(BIN_PATH) $(MAIN_PATH)/Main $(REPO)/$(FILE)
+	$(JAVA) $(CLASS_PATH_OPTION):$(BIN_PATH) checker/Main $(FILE)
 
 runall:
-	-for FILE in $(IN)/*.go; do \
+	@echo "Scanning $(IN) folder for files..."
+	@-for FILE in $(IN)/*.go; do \
 	 	echo -e "\nRunning $${FILE}" && \
-	 	$(JAVA) $(CLASS_PATH_OPTION):$(BIN_PATH) $(MAIN_PATH)/Main $${FILE}; \
+	 	$(JAVA) $(CLASS_PATH_OPTION):$(BIN_PATH) checker/Main $${FILE}; \
 	done;
 
 clean:

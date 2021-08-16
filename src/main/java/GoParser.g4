@@ -32,8 +32,8 @@ func_declaration:
 ;
 
 var_declaration:
-  VAR IDENTIFIER (var_types | var_types? ASSIGN (var_value_types | expression) | array_declaration) SEMI?
-| IDENTIFIER DECLARE_ASSIGN (var_value_types | array_declaration | expression) SEMI?
+  VAR IDENTIFIER (var_types | var_types? ASSIGN  expression | array_declaration) SEMI?    #varDeclaration
+| IDENTIFIER DECLARE_ASSIGN ( array_declaration | expression) SEMI?                       #declareAssign
 ;  
 
 array_declaration:
@@ -42,7 +42,7 @@ array_declaration:
 
 array_args:
   array_args COMMA array_args
-| var_value_types
+| expression
 ;
 
 // Functions
@@ -102,16 +102,24 @@ case_statement:
 // Expression
 
 expression:
-  expression (STAR | DIV | MOD) expression        
-| expression (PLUS | MINUS) expression            
-| expression relational_operators expression      
-| L_PAREN expression R_PAREN                      
-| var_value_types                                 
-| IDENTIFIER (L_BRACKET expression R_BRACKET)?    
-| func_call                                       
+  expression (STAR | DIV | MOD) expression        #starDivMod
+| expression (PLUS | MINUS) expression            #plusMinus
+| expression relational_operators expression      #relationalOperators
+| L_PAREN expression R_PAREN                      #expressionParen
+| IDENTIFIER (L_BRACKET expression R_BRACKET)?    #identifier
+| func_call                                       #funcCall
+| DECIMAL_LIT                                     #intVal
+| BINARY_LIT                                      #binaryVal
+| OCTAL_LIT                                       #octalVal
+| HEX_LIT                                         #hexVal
+| FLOAT_LIT                                       #floatVal
+| DECIMAL_FLOAT_LIT                               #decimalFloatVal
+| HEX_FLOAT_LIT                                   #hexFloatVal
+| INTERPRETED_STRING_LIT                          #stringVal
+| BOOLEAN_LIT                                     #boolVal
 ;
 
-// Relation operators
+// Relational operators
 
 relational_operators:
   EQUALS
@@ -122,23 +130,11 @@ relational_operators:
 | GREATER_OR_EQUALS
 ;
 
-// Var types and values
+// Var types
 
 var_types: 
-  INT         
-| STRING      
-| BOOL        
-| FLOAT32     
-;
-
-var_value_types : 
-  DECIMAL_LIT               
-| BINARY_LIT                
-| OCTAL_LIT                 
-| HEX_LIT                   
-| FLOAT_LIT                 
-| DECIMAL_FLOAT_LIT         
-| HEX_FLOAT_LIT             
-| INTERPRETED_STRING_LIT    
-| BOOLEAN_LIT               
+  INT         #intType
+| STRING      #stringType
+| BOOL        #boolType
+| FLOAT32     #float32Type
 ;
