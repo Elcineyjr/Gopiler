@@ -32,12 +32,19 @@ func_declaration:
 ;
 
 var_declaration:
-  VAR IDENTIFIER (var_types | var_types? ASSIGN  expression | array_declaration) SEMI?    #varDeclaration
-| IDENTIFIER DECLARE_ASSIGN ( array_declaration | expression) SEMI?                       #declareAssign
+  VAR IDENTIFIER (var_types | var_types? ASSIGN  expression | array_declaration) SEMI?
+;
+
+declare_assign:
+  IDENTIFIER DECLARE_ASSIGN ( array_init | expression) SEMI?
 ;  
 
 array_declaration:
-  L_BRACKET DECIMAL_LIT R_BRACKET var_types (L_CURLY array_args? R_CURLY)?
+  L_BRACKET DECIMAL_LIT R_BRACKET var_types
+;
+
+array_init:
+  array_declaration L_CURLY array_args? R_CURLY
 ;
 
 array_args:
@@ -69,26 +76,26 @@ statement_section:
 
 statement:
   var_declaration
+| declare_assign
 | if_statement
 | for_statement
 | assign_statement
 | switch_statement
-| case_statement
 | func_call SEMI?
 ;
 
 if_statement:
-  IF expression statement_section+ (ELSE statement_section+)?
+  IF expression statement_section (ELSE statement_section)?
 ;
 
 for_statement:
-  FOR expression? statement_section+
-| FOR var_declaration SEMI expression SEMI assign_statement statement_section+
+  FOR expression? statement_section                                             #while
+| FOR declare_assign SEMI expression SEMI assign_statement statement_section    #for
 ;
 
 assign_statement: 
-  IDENTIFIER (L_BRACKET expression R_BRACKET)? (ASSIGN | MINUS_ASSIGN | PLUS_ASSIGN) expression SEMI?
-| IDENTIFIER (PLUS_PLUS | MINUS_MINUS) SEMI?
+  id op=(ASSIGN | MINUS_ASSIGN | PLUS_ASSIGN) expression SEMI?    #assignExpression
+| id op=(PLUS_PLUS | MINUS_MINUS) SEMI?                           #assignPPMM
 ;
 
 switch_statement:
@@ -96,38 +103,33 @@ switch_statement:
 ;
 
 case_statement: 
-  (CASE expression | DEFAULT) COLON statement* 
+  (CASE expression COLON statement*)* DEFAULT COLON statement*
 ;
 
 // Expression
 
 expression:
-  expression (STAR | DIV | MOD) expression        #starDivMod
-| expression (PLUS | MINUS) expression            #plusMinus
-| expression relational_operators expression      #relationalOperators
+  expression op=(STAR | DIV | MOD) expression     #starDivMod
+| expression op=(PLUS | MINUS) expression         #plusMinus
+| expression op=(  
+    EQUALS
+    | NOT_EQUALS
+    | LESS
+    | LESS_OR_EQUALS
+    | GREATER
+    | GREATER_OR_EQUALS
+  ) expression                                    #relationalOperators
 | L_PAREN expression R_PAREN                      #expressionParen
-| IDENTIFIER (L_BRACKET expression R_BRACKET)?    #identifier
+| id                                              #expressionId
 | func_call                                       #funcCall
 | DECIMAL_LIT                                     #intVal
-| BINARY_LIT                                      #binaryVal
-| OCTAL_LIT                                       #octalVal
-| HEX_LIT                                         #hexVal
 | FLOAT_LIT                                       #floatVal
-| DECIMAL_FLOAT_LIT                               #decimalFloatVal
-| HEX_FLOAT_LIT                                   #hexFloatVal
 | INTERPRETED_STRING_LIT                          #stringVal
 | BOOLEAN_LIT                                     #boolVal
 ;
 
-// Relational operators
-
-relational_operators:
-  EQUALS
-| NOT_EQUALS
-| LESS
-| LESS_OR_EQUALS
-| GREATER
-| GREATER_OR_EQUALS
+id:
+  IDENTIFIER (L_BRACKET expression R_BRACKET)?
 ;
 
 // Var types
