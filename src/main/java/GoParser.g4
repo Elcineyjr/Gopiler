@@ -44,28 +44,17 @@ array_declaration:
 ;
 
 array_init:
-  array_declaration L_CURLY array_args? R_CURLY
-;
-
-array_args:
-  array_args COMMA array_args
-| expression
+  array_declaration L_CURLY expression_list? R_CURLY
 ;
 
 // Functions
 
 func_args:
-  func_args COMMA func_args
-| IDENTIFIER (L_BRACKET DECIMAL_LIT R_BRACKET)? var_types
-;
-
-func_params:
-  func_params COMMA func_params
-| expression
+  id var_types (COMMA id var_types)*
 ;
 
 func_call:
-  IDENTIFIER L_PAREN func_params? R_PAREN 
+  IDENTIFIER L_PAREN expression_list? R_PAREN 
 ;
 
 // Statements
@@ -99,14 +88,22 @@ assign_statement:
 ;
 
 switch_statement:
-  SWITCH expression? L_CURLY case_statement R_CURLY
+  SWITCH id? L_CURLY case_statement R_CURLY
 ;
 
 case_statement: 
-  (CASE expression COLON statement*)* DEFAULT COLON statement*
+  (CASE expression COLON statement*)* default_statement?
+;
+
+default_statement: 
+  DEFAULT COLON statement*
 ;
 
 // Expression
+
+expression_list: 
+  expression (COMMA expression)*
+;
 
 expression:
   expression op=(STAR | DIV | MOD) expression     #starDivMod
@@ -121,7 +118,7 @@ expression:
   ) expression                                    #relationalOperators
 | L_PAREN expression R_PAREN                      #expressionParen
 | id                                              #expressionId
-| func_call                                       #funcCall
+| func_call                                       #expressionFuncCall
 | DECIMAL_LIT                                     #intVal
 | FLOAT_LIT                                       #floatVal
 | INTERPRETED_STRING_LIT                          #stringVal

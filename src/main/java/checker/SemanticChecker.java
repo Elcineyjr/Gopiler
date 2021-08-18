@@ -4,15 +4,15 @@ import org.antlr.v4.runtime.Token;
 
 import parser.GoParser;
 import parser.GoParserBaseVisitor;
+import tables.FuncTable;
 import tables.StrTable;
 import tables.VarTable;
 import typing.Type;
 
 // TODOs:
 // Must do:
-// 	- Switch case
 //  - Handle arrays (do i need to create and ARRAY_TYPE or so?)
-// 	- functions
+// 	- functions (problem when declared after main func / func vars scope)
 //  - input / output
 // 	-
 // Would be great if done:
@@ -26,8 +26,11 @@ public class SemanticChecker extends GoParserBaseVisitor<Type> {
 
 	private StrTable st = new StrTable(); // Tabela de strings.
 	private VarTable vt = new VarTable(); // Tabela de variáveis.
+	private FuncTable ft = new FuncTable(); // Tabela de variáveis.
 
-	Type lastDeclType; // Variável "global" com o último tipo declarado.
+	Type lastDeclType; // Global variable with the last declared type 
+	int lastDeclArgsSize; // Global variable with the last declared argsSize 
+	int lastExpressionListSize;
 
 	private boolean passed = true;
 
@@ -40,6 +43,8 @@ public class SemanticChecker extends GoParserBaseVisitor<Type> {
 		System.out.print(st);
 		System.out.print("\n\n");
 		System.out.print(vt);
+		System.out.print("\n\n");
+		System.out.print(ft);
 		System.out.print("\n\n");
 	}
 
@@ -66,15 +71,69 @@ public class SemanticChecker extends GoParserBaseVisitor<Type> {
 		int line = token.getLine();
 		int idx = vt.lookupVar(text);
 		if (idx != -1) {
-			System.err.printf("SEMANTIC ERROR (%d): variable '%s' already declared at line %d.\n", line, text, vt.getLine(idx));
+			System.err.printf("SEMANTIC ERROR (%d): variable '%s' already declared at line %d.\n",
+				line, text, vt.getLine(idx)
+			);
 			passed = false;
 			return;
 		}
 		vt.addVar(text, line, lastDeclType);
 	}
 
+	/*------------------------------------------------------------------------------*
+	 *	Function checking and declaration.
+	 *------------------------------------------------------------------------------*/
+
+	// Checks whether the function was previously declared
+	Type checkFunc(Token token) {
+		String text = token.getText();
+		int line = token.getLine();
+		int idx = ft.lookupFunc(text);
+		if (idx == -1) {
+			System.err.printf("SEMANTIC ERROR (%d): function '%s' was not declared.\n", line, text);
+			passed = false;
+			return Type.NO_TYPE;
+		}
+		return ft.getType(idx);
+	}
+
+	// Creates a new function from token
+	void newFunc(Token token, int argsSize) {
+		String text = token.getText();
+		int line = token.getLine();
+		int idx = ft.lookupFunc(text);
+		if (idx != -1) {
+			System.err.printf("SEMANTIC ERROR (%d): function '%s' already declared at line %d.\n",
+				line, text, ft.getLine(idx)
+			);
+			passed = false;
+			return;
+		}
+		ft.addFunc(text, line, lastDeclType, argsSize);
+	}
+
+	// Checks if the function was called with the right amount of arguments
+	// Warning: this function should only be called after an explict call of the checkFunc
+	void checkFuncCall(Token token) {
+		String text = token.getText();
+		int line = token.getLine();
+		int idx = ft.lookupFunc(token.getText());
+
+		// Doesnt show 'function not declared' error
+		if(idx != -1) {
+			int argsSize = ft.getArgsSize(idx);
+	
+			if(argsSize != lastExpressionListSize) {
+				System.err.printf("SEMANTIC ERROR (%d): function '%s' expected %d arguments but received '%d'.\n",
+					line, text, argsSize, lastExpressionListSize
+				);
+				passed = false;
+			}
+		}
+	}
+
     /*------------------------------------------------------------------------------*
-	 *	Type checking and inference.
+	 *	Type, operations and expression checking
 	 *------------------------------------------------------------------------------*/
 	
     private void typeError(int lineNo, String op, Type t1, Type t2) {
@@ -85,16 +144,14 @@ public class SemanticChecker extends GoParserBaseVisitor<Type> {
     	passed = false;
     }
 
-	private void typeErrorUnary(int lineNo, String op, Type t){
-		System.out.printf(
-			"SEMANTIC ERROR (%d): type '%s' not suported for unary operator '%s'.\n",
-			lineNo, t.toString(), op
-		);
-    	passed = false;
-	}
-
 	private void checkUnaryOp(int lineNo, String op, Type t) {
-		if (t != Type.INT_TYPE && t != Type.FLOAT32_TYPE) typeErrorUnary(lineNo, op, t);
+		if (t != Type.INT_TYPE && t != Type.FLOAT32_TYPE) {
+			System.out.printf(
+				"SEMANTIC ERROR (%d): type '%s' not suported for unary operator '%s'.\n",
+				lineNo, t.toString(), op
+			);
+    		passed = false;
+		}
 	}
 
 	private void checkAssign(int lineNo, String op,Type l, Type r) {
@@ -123,6 +180,16 @@ public class SemanticChecker extends GoParserBaseVisitor<Type> {
 			passed = false;
 		}
     }
+
+	private void checkCase(int lineNo, Type t1, Type t2) {
+		if(t1 != t2) {
+			System.out.printf(
+				"SEMANTIC ERROR (%d): incompatible types for case, expected '%s' but expression is '%s'.\n",
+				lineNo, t1.toString(), t2.toString()
+			);
+			passed = false;
+		}
+	}
 
 	// ----- Specific for when declaring variables
 
@@ -251,7 +318,46 @@ public class SemanticChecker extends GoParserBaseVisitor<Type> {
 	// 	return Type.NO_TYPE;
 	// }
 
+	/*------------------------------------------------------------------------------*
+	 *	Visitors for func_declaration and rules
+	 *------------------------------------------------------------------------------*/
+	
+	// Visits the rule func_declaration: FUNC IDENTIFIER L_PAREN func_args? R_PAREN var_types? statement_section
+	@Override
+	public Type visitFunc_declaration(GoParser.Func_declarationContext ctx) {
+		
+		if(ctx.var_types() != null) {
+			// Defines lastDeclType 
+			visit(ctx.var_types());
+		} else {
+			// Function has no return type
+			lastDeclType = Type.NO_TYPE;
+		}
 
+		if(ctx.func_args() != null) {
+			// Defines lastDeclArgsSize
+			visit(ctx.func_args());
+		} else {
+			// Function has no args
+			lastDeclArgsSize = 0;
+		}
+		
+		// Checks if the function was previously declared
+		newFunc(ctx.IDENTIFIER().getSymbol(), lastDeclArgsSize);
+
+		// Recursively visits rule for error checking
+		visit(ctx.statement_section());
+
+		return Type.NO_TYPE;
+	}
+
+	// Visits the rule func_args: id var_types (COMMA id var_types)*
+	@Override
+	public Type visitFunc_args(GoParser.Func_argsContext ctx) {
+		lastDeclArgsSize = ctx.id().size();
+
+		return Type.NO_TYPE;
+	}
 
 	/*------------------------------------------------------------------------------*
 	 *	Visitors for statements rule
@@ -344,20 +450,97 @@ public class SemanticChecker extends GoParserBaseVisitor<Type> {
 		return Type.NO_TYPE;
 	}
 
-	// TODO: should the switch rule have and expression or an id?
-	// @Override
-	// public Type visitSwitch_statement(GoParser.Switch_statementContext ctx) {
-	// 	// Checks if there is a identifier to be evaluated
-	// 	if(ctx.IDENTIFIER() != null) {
-	// 		// Recursively visits the identifier for error checking
-	// 		visit(ctx.IDENTIFIER());	
-	// 	}
+	// Visits the rule switch_statement: SWITCH id? L_CURLY case_statement R_CURLY
+	@Override
+	public Type visitSwitch_statement(GoParser.Switch_statementContext ctx) {
+		// Checks if there is a identifier to be evaluated
+		if(ctx.id() != null) {
+			// Recursively visits the identifier for error checking
+			visit(ctx.id());	
+		}
 
-	// 	// Recursively visits the case_statement for error checking
-	// 	visit(ctx.case_statement());
+		// Recursively visits the case_statement for error checking
+		visit(ctx.case_statement());
 
-	// 	return Type.NO_TYPE;
-	// }
+		return Type.NO_TYPE;
+	}
+
+	// Visits the rule case_statement: (CASE expression COLON statement*)* (DEFAULT COLON statement*)?
+	@Override
+	public Type visitCase_statement(GoParser.Case_statementContext ctx) {
+		// Get the parent node of the rule, in this case, the switch node
+		GoParser.Switch_statementContext parent = (GoParser.Switch_statementContext) ctx.parent;
+		
+		// Dont think thats gonna happen, but there it is
+		if(parent == null) {
+			System.out.println("Case statement has no parent node. Exiting...");
+			System.exit(1);
+		}
+
+		// Default type for the case expression if no identifier is being evaluated
+		Type caseType = Type.BOOL_TYPE;
+
+		// Checks if there is a identifier to be evaluated
+		if(parent.id() != null) {
+			// Set the case type to the same type as the identifier
+			caseType = visit(parent.id());	
+		}
+
+		// Recursively visits every expression for each case to handle errors
+		for(int i = 0; i < ctx.expression().size(); i++) {
+			// Get the current expression type
+			Type expressionType = visit(ctx.expression(i));
+			
+			// Check if the expression type matches with the case type
+			checkCase(ctx.CASE().get(i).getSymbol().getLine() , caseType, expressionType);
+		}
+
+		// TODO: thats probably cause some problems when trying to figure out
+		// which statement is from which case
+		// Recursively visits every statement for error checking
+		for(GoParser.StatementContext stmt : ctx.statement()) {
+			visit(stmt);
+		}
+
+		// Recursively visits rule for error checking
+		if(ctx.default_statement() != null) { 
+			visit(ctx.default_statement());
+		}
+
+		return Type.NO_TYPE;
+	}
+	
+	//  Visits the rule func_call: IDENTIFIER L_PAREN expression_list? R_PAREN 
+	@Override
+	public Type visitFunc_call(GoParser.Func_callContext ctx) {
+		Token funcToken = ctx.IDENTIFIER().getSymbol();
+
+		// Checks if the function was previously declared
+		Type funcType = checkFunc(funcToken);
+
+		// Checks if the function call has any parameters
+		if(ctx.expression_list() != null) {
+			// Recursively visits rule for error checking
+			visit(ctx.expression_list());
+		} else {
+			lastExpressionListSize = 0;
+		}
+
+		// Checks if the expressionListSize is the same size as what the function expects
+		checkFuncCall(funcToken);
+
+		// maybe it should return the func type
+		return funcType;
+	}
+
+
+	// Visits the rule expression_list: expression (COMMA expression)*
+	@Override
+	public Type visitExpression_list(GoParser.Expression_listContext ctx) {
+		lastExpressionListSize = ctx.expression().size();
+
+		return Type.NO_TYPE;
+	}
 
 
 	/*------------------------------------------------------------------------------*
@@ -433,6 +616,12 @@ public class SemanticChecker extends GoParserBaseVisitor<Type> {
 	@Override
 	public Type visitExpressionId(GoParser.ExpressionIdContext ctx) {
 		return visit(ctx.id());
+	}
+
+	// Visits the rule expression: func_call
+	@Override
+	public Type visitExpressionFuncCall(GoParser.ExpressionFuncCallContext ctx) {
+		return visit(ctx.func_call());
 	}
 
 	// Visits the rule expression: DECIMAL_LIT
