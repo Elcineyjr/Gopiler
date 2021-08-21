@@ -11,8 +11,7 @@ import typing.Type;
 
 // TODOs:
 // Must do:
-//  - Handle arrays (do i need to create and ARRAY_TYPE or so?)
-// 	- functions vars scope (not priority for now)
+// 	- vars scope (not priority for now)
 // 	-
 // Would be great if done:
 // - implement tables using hash
@@ -219,6 +218,16 @@ public class SemanticChecker extends GoParserBaseVisitor<Type> {
         if (l == Type.FLOAT32_TYPE && !(r == Type.INT_TYPE || r == Type.FLOAT32_TYPE)) typeInitError(lineNo, varName, l, r);
     }
     
+	private void checkArrayInit(int lineNo, String varName) {
+		if(lastDeclArgsSize != lastExpressionListSize) {
+			System.out.printf(
+				"SEMANTIC ERROR (%d): Array '%s' declared with size %d but initialized with %d arguments.\n",
+				lineNo, varName, lastDeclArgsSize, lastExpressionListSize
+			);
+			passed = false;
+		}
+	}
+
 	/*------------------------------------------------------------------------------*
 	 *	Visitors for var_types rule
 	 *------------------------------------------------------------------------------*/
@@ -296,16 +305,22 @@ public class SemanticChecker extends GoParserBaseVisitor<Type> {
 	}
 
 
-	// TODO: handle arrays
 	// Visits the rule declare_assign: IDENTIFIER DECLARE_ASSIGN ( array_init | expression) SEMI?
 	@Override
 	public Type visitDeclare_assign(GoParser.Declare_assignContext ctx) {
+		Token identifierToken = ctx.IDENTIFIER().getSymbol();
+
 		// Defines lastDeclType based on expression type or array initialization
 		if(ctx.expression() != null) lastDeclType = visit(ctx.expression());
-		if(ctx.array_init() != null) visit(ctx.array_init());
+		if(ctx.array_init() != null) {
+			visit(ctx.array_init());
+
+			// Checks if the array was initialized with the correct amount of indexes
+			checkArrayInit(identifierToken.getLine(), identifierToken.getText());
+		}
 
 		// Checks if the variable was previously declared
-		newVar(ctx.IDENTIFIER().getSymbol());
+		newVar(identifierToken);
 
 		return Type.NO_TYPE;
 	}
@@ -317,21 +332,28 @@ public class SemanticChecker extends GoParserBaseVisitor<Type> {
 	// Visits the rule array_declaration: L_BRACKET DECIMAL_LIT R_BRACKET var_types
 	@Override
 	public Type visitArray_declaration(GoParser.Array_declarationContext ctx) {
+		// Defines the array size
+		lastDeclArgsSize = Integer.parseInt(ctx.DECIMAL_LIT().getText());
+
 		// Defines lastDeclType 
-		visit(ctx.var_types());		
+		visit(ctx.var_types());
 
 		return Type.NO_TYPE;
 	}
 
-	//  TODO: handle if the declared array size equals init size
-	// @Override
-	// public Type visitArray_init(GoParser.Array_initContext ctx) {
-	// 	visit(ctx.array_declaration());
+	// Visits the rule array_init: array_declaration L_CURLY expression_list? R_CURLY
+	@Override
+	public Type visitArray_init(GoParser.Array_initContext ctx) {
+		// Recursively visits the rule for error checking
+		visit(ctx.array_declaration());
 
-	// 	lastDeclArgsSize = ctx.id().size();
+		if(ctx.expression_list() != null) {
+			// Recursively visits the rule for error checking
+			visit(ctx.expression_list());
+		} 
 
-	// 	return Type.NO_TYPE;
-	// }
+		return Type.NO_TYPE;
+	}
 
 	/*------------------------------------------------------------------------------*
 	 *	Visitors for input and output
@@ -398,8 +420,18 @@ public class SemanticChecker extends GoParserBaseVisitor<Type> {
 	public Type visitFunc_args(GoParser.Func_argsContext ctx) {
 		lastDeclArgsSize = ctx.id().size();
 
-		// TODO: add each var into the func var table
+		// TODO: handle scopes, for now its just adding into the global var table
+		// Adds every argument into the var table
+		for(int i = 0; i < ctx.id().size(); i++) {
+			// Defines lastDeclType
+			visit(ctx.var_types(i));
 
+			// Checks if the variable was previously declared
+			newVar(ctx.id(i).IDENTIFIER().getSymbol());
+
+			// Recursively visits the rule for error checking
+			visit(ctx.id(i));
+		}
 
 		return Type.NO_TYPE;
 	}
