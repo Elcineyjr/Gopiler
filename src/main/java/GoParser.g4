@@ -60,7 +60,11 @@ func_call:
 // Statements
 
 statement_section:
-  L_CURLY statement* (RETURN expression SEMI?)? R_CURLY
+  L_CURLY statement* return_statement? R_CURLY
+;
+
+return_statement: 
+  RETURN expression? SEMI?
 ;
 
 statement:

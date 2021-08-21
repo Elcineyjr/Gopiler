@@ -12,8 +12,8 @@ import typing.Type;
 // TODOs:
 // Must do:
 //  - Handle arrays (do i need to create and ARRAY_TYPE or so?)
-// 	- functions (problem when declared after main func / func vars scope)
 //  - input / output
+// 	- functions vars scope (not priority for now)
 // 	-
 // Would be great if done:
 // - implement tables using hash
@@ -28,7 +28,8 @@ public class SemanticChecker extends GoParserBaseVisitor<Type> {
 	private VarTable vt = new VarTable(); // Tabela de variáveis.
 	private FuncTable ft = new FuncTable(); // Tabela de variáveis.
 
-	Type lastDeclType; // Global variable with the last declared type 
+	Type lastDeclType; // Global variable with the last declared var type 
+	Type lastDeclFuncType; // Global variable with the last declared func type 
 	int lastDeclArgsSize; // Global variable with the last declared argsSize 
 	int lastExpressionListSize;
 
@@ -109,7 +110,7 @@ public class SemanticChecker extends GoParserBaseVisitor<Type> {
 			passed = false;
 			return;
 		}
-		ft.addFunc(text, line, lastDeclType, argsSize);
+		ft.addFunc(text, line, lastDeclFuncType, argsSize);
 	}
 
 	// Checks if the function was called with the right amount of arguments
@@ -129,6 +130,17 @@ public class SemanticChecker extends GoParserBaseVisitor<Type> {
 				);
 				passed = false;
 			}
+		}
+	}
+
+	// Checks if a return statement has a compatible type with the function
+	void checkFuncReturnType(int lineNo, Type t) {
+		if(t != lastDeclFuncType) {
+			System.err.printf(
+				"SEMANTIC ERROR (%d): Return statement type incompatible with function type. Expected '%s' but received '%s'.\n",
+				lineNo, lastDeclFuncType, t
+			);
+			passed = false;
 		}
 	}
 
@@ -319,9 +331,10 @@ public class SemanticChecker extends GoParserBaseVisitor<Type> {
 	// }
 
 	/*------------------------------------------------------------------------------*
-	 *	Visitors for func_declaration and rules
+	 *	Visitors for functions related rules
 	 *------------------------------------------------------------------------------*/
 	
+	//  TODOs: handle args declaration inside function scope
 	// Visits the rule func_declaration: FUNC IDENTIFIER L_PAREN func_args? R_PAREN var_types? statement_section
 	@Override
 	public Type visitFunc_declaration(GoParser.Func_declarationContext ctx) {
@@ -333,6 +346,10 @@ public class SemanticChecker extends GoParserBaseVisitor<Type> {
 			// Function has no return type
 			lastDeclType = Type.NO_TYPE;
 		}
+
+		// Saves the func type before the lastDeclType be overwritten
+		// by the args declaration
+		lastDeclFuncType = lastDeclType;
 
 		if(ctx.func_args() != null) {
 			// Defines lastDeclArgsSize
@@ -356,6 +373,26 @@ public class SemanticChecker extends GoParserBaseVisitor<Type> {
 	public Type visitFunc_args(GoParser.Func_argsContext ctx) {
 		lastDeclArgsSize = ctx.id().size();
 
+		// TODO: add each var into the func var table
+
+
+		return Type.NO_TYPE;
+	}
+
+	// Visits the rule func_section: func_declaration* func_main func_declaration*
+	@Override
+	public Type visitFunc_section(GoParser.Func_sectionContext ctx) {
+		// Checks if there is any other function declaration besides the main function
+		if(ctx.func_declaration() != null) {
+			// Recursively visits the functions for error checking
+			for (GoParser.Func_declarationContext funcDecl : ctx.func_declaration()) {
+				visit(funcDecl);
+			}
+		}
+
+		// Finally visits the main function for error checking
+		visit(ctx.func_main());
+
 		return Type.NO_TYPE;
 	}
 
@@ -363,6 +400,36 @@ public class SemanticChecker extends GoParserBaseVisitor<Type> {
 	 *	Visitors for statements rule
 	 *------------------------------------------------------------------------------*/
 
+	// Visits the rule statement_section: L_CURLY statement* return_statement? R_CURLY
+	@Override
+	public Type visitStatement_section(GoParser.Statement_sectionContext ctx) {
+		// Recursively visits every statement for error checking
+		for (GoParser.StatementContext stmt : ctx.statement()) {
+			visit(stmt);
+		}
+
+		if(ctx.return_statement() != null) {
+			// Recursively visits the rule for error checking
+			visit(ctx.return_statement());
+		}
+
+		return Type.NO_TYPE;
+	}
+
+	// Visits the rule return_statement: RETURN expression SEMI?
+	@Override
+	public Type visitReturn_statement(GoParser.Return_statementContext ctx) {
+		Type expressionType = Type.NO_TYPE;
+		
+		if(ctx.expression() != null) {
+			expressionType = visit(ctx.expression());
+		}
+
+		// Checks if the function return type and expression type match
+		checkFuncReturnType(ctx.RETURN().getSymbol().getLine(), expressionType);
+
+		return Type.NO_TYPE;
+	}
 
 	// Visits the rule if_statement: IF expression statement_section (ELSE statement_section)?
 	@Override
