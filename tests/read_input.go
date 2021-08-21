@@ -1,16 +1,12 @@
 package main
 
-import (
-    "bufio"
-    "fmt"
-    "os"
-)
+import "fmt"
 
 func main() {
-    reader := bufio.NewReader(os.Stdin)
-	fmt.Print("Enter text: ")
+	var text string
 
-	// Nosso programa não sabe lidar com multipla declaração de variaveis simultaneamente
-	text := reader.ReadString('\n')
+	fmt.Println("Enter text:")
+	fmt.Scanln(&text)
+
 	fmt.Println(text)
 }

@@ -12,7 +12,6 @@ import typing.Type;
 // TODOs:
 // Must do:
 //  - Handle arrays (do i need to create and ARRAY_TYPE or so?)
-//  - input / output
 // 	- functions vars scope (not priority for now)
 // 	-
 // Would be great if done:
@@ -298,11 +297,12 @@ public class SemanticChecker extends GoParserBaseVisitor<Type> {
 
 
 	// TODO: handle arrays
-	// Visits the rule declare_assign: IDENTIFIER DECLARE_ASSIGN ( array_declaration | expression) SEMI?
+	// Visits the rule declare_assign: IDENTIFIER DECLARE_ASSIGN ( array_init | expression) SEMI?
 	@Override
 	public Type visitDeclare_assign(GoParser.Declare_assignContext ctx) {
-		// Defines lastDeclType based on expression type
-		lastDeclType = visit(ctx.expression());
+		// Defines lastDeclType based on expression type or array initialization
+		if(ctx.expression() != null) lastDeclType = visit(ctx.expression());
+		if(ctx.array_init() != null) visit(ctx.array_init());
 
 		// Checks if the variable was previously declared
 		newVar(ctx.IDENTIFIER().getSymbol());
@@ -314,7 +314,6 @@ public class SemanticChecker extends GoParserBaseVisitor<Type> {
 	 *Visitor for array_declaration and array_ags rules
 	 *------------------------------------------------------------------------------*/
 
-	//  TODO: check if its necessary to create an Array type
 	// Visits the rule array_declaration: L_BRACKET DECIMAL_LIT R_BRACKET var_types
 	@Override
 	public Type visitArray_declaration(GoParser.Array_declarationContext ctx) {
@@ -324,11 +323,37 @@ public class SemanticChecker extends GoParserBaseVisitor<Type> {
 		return Type.NO_TYPE;
 	}
 
+	//  TODO: handle if the declared array size equals init size
 	// @Override
-	// public Type visitArray_args(GoParser.Array_argsContext ctx) {
-		
+	// public Type visitArray_init(GoParser.Array_initContext ctx) {
+	// 	visit(ctx.array_declaration());
+
+	// 	lastDeclArgsSize = ctx.id().size();
+
 	// 	return Type.NO_TYPE;
 	// }
+
+	/*------------------------------------------------------------------------------*
+	 *	Visitors for input and output
+	 *------------------------------------------------------------------------------*/
+
+	//  Visits the rule input: INPUT L_PAREN AMPERSAND id R_PAREN
+	@Override
+	public Type visitInput(GoParser.InputContext ctx) {
+		// Recursively visits the rule for error checking
+		visit(ctx.id());
+
+		return Type.NO_TYPE;
+	}
+
+	// Visits the rule output: OUTPUT L_PAREN expression_list? R_PAREN
+	@Override
+	public Type visitOutput(GoParser.OutputContext ctx) {
+		// Recursively visits the rule for error checking
+		visit(ctx.expression_list());
+
+		return Type.NO_TYPE;
+	}
 
 	/*------------------------------------------------------------------------------*
 	 *	Visitors for functions related rules
@@ -520,11 +545,10 @@ public class SemanticChecker extends GoParserBaseVisitor<Type> {
 	// Visits the rule switch_statement: SWITCH id? L_CURLY case_statement R_CURLY
 	@Override
 	public Type visitSwitch_statement(GoParser.Switch_statementContext ctx) {
-		// Checks if there is a identifier to be evaluated
-		if(ctx.id() != null) {
-			// Recursively visits the identifier for error checking
-			visit(ctx.id());	
-		}
+		// Checks if there is a identifier or func call to be evaluated
+		// and recursively visits the rule for error checking
+		if(ctx.id() != null) visit(ctx.id());	
+		if(ctx.func_call() != null) visit(ctx.func_call());	
 
 		// Recursively visits the case_statement for error checking
 		visit(ctx.case_statement());
@@ -544,14 +568,13 @@ public class SemanticChecker extends GoParserBaseVisitor<Type> {
 			System.exit(1);
 		}
 
-		// Default type for the case expression if no identifier is being evaluated
+		// Default type for the case expression if nothing is being evaluated
 		Type caseType = Type.BOOL_TYPE;
 
-		// Checks if there is a identifier to be evaluated
-		if(parent.id() != null) {
-			// Set the case type to the same type as the identifier
-			caseType = visit(parent.id());	
-		}
+		// Checks if there is a identifier or func_call to be evaluated
+		// and set the case type to the same type as the identifier
+		if(parent.id() != null) caseType = visit(parent.id());	
+		if(parent.func_call() != null) caseType = visit(parent.func_call());	
 
 		// Recursively visits every expression for each case to handle errors
 		for(int i = 0; i < ctx.expression().size(); i++) {
@@ -562,7 +585,7 @@ public class SemanticChecker extends GoParserBaseVisitor<Type> {
 			checkCase(ctx.CASE().get(i).getSymbol().getLine() , caseType, expressionType);
 		}
 
-		// TODO: thats probably cause some problems when trying to figure out
+		// TODO: that will probably cause some problems when trying to figure out
 		// which statement is from which case
 		// Recursively visits every statement for error checking
 		for(GoParser.StatementContext stmt : ctx.statement()) {
@@ -596,7 +619,6 @@ public class SemanticChecker extends GoParserBaseVisitor<Type> {
 		// Checks if the expressionListSize is the same size as what the function expects
 		checkFuncCall(funcToken);
 
-		// maybe it should return the func type
 		return funcType;
 	}
 
@@ -605,6 +627,11 @@ public class SemanticChecker extends GoParserBaseVisitor<Type> {
 	@Override
 	public Type visitExpression_list(GoParser.Expression_listContext ctx) {
 		lastExpressionListSize = ctx.expression().size();
+
+		// Recursively visits each expression for error checking
+		for(GoParser.ExpressionContext expr : ctx.expression()) {
+			visit(expr);
+		}
 
 		return Type.NO_TYPE;
 	}

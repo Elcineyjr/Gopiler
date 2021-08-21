@@ -79,6 +79,15 @@ MAIN                   : 'main';
 
 IDENTIFIER             : LETTER (LETTER | UNICODE_DIGIT)*;
 
+// input - output
+INPUT                  :FMT DOT SCANLN;
+OUTPUT                 :FMT DOT PRINTLN;
+
+FMT                    :'fmt';    
+PRINTLN                :'Println';
+SCANLN                 :'Scanln';
+
+
 // Punctuation
 
 L_PAREN                : '(';

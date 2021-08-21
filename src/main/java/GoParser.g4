@@ -49,6 +49,14 @@ array_init:
 
 // Functions
 
+input:
+  INPUT L_PAREN AMPERSAND id R_PAREN
+;
+
+output:
+  OUTPUT L_PAREN expression_list? R_PAREN
+;
+
 func_args:
   id var_types (COMMA id var_types)*
 ;
@@ -75,6 +83,8 @@ statement:
 | assign_statement
 | switch_statement
 | func_call SEMI?
+| input
+| output
 ;
 
 if_statement:
@@ -92,7 +102,7 @@ assign_statement:
 ;
 
 switch_statement:
-  SWITCH id? L_CURLY case_statement R_CURLY
+  SWITCH (id | func_call)? L_CURLY case_statement R_CURLY
 ;
 
 case_statement: 
