@@ -34,7 +34,7 @@ public class AST {
 	// Add child to node
 	public void addChild(AST child) {
 		if(child == null) return;
-		
+
 		this.children.add(child);
 	}
 
@@ -50,6 +50,8 @@ public class AST {
 	public static AST newSubtree(NodeKind kind, Type type, AST... children) {
 		AST node = new AST(kind, 0, type);
 	    for (AST child: children) {
+			if(children == null) continue;
+
 	    	node.addChild(child);
 	    }
 	    return node;
@@ -87,7 +89,7 @@ public class AST {
 	    	System.err.printf("%s", this.kind.toString());
 	    }
 	    if (NodeKind.hasData(this.kind)) {
-	        if (this.kind == NodeKind.BOOL_VAL_NODE) {
+	        if (this.kind == NodeKind.FLOAT32_VAL_NODE) {
 	        	System.err.printf("%.2f", this.floatData);
 	        } else if (this.kind == NodeKind.STRING_VAL_NODE) {
 	        	System.err.printf("@%d", this.intData);
@@ -98,15 +100,6 @@ public class AST {
 	    System.err.printf("\"];\n");
 
 	    for (int i = 0; i < this.children.size(); i++) {
-			// System.out.println("size " + this.children.size());
-			// System.out.println("i "+ i);
-			// System.out.println(this.children.get(i));
-			// System.out.println(this.children.get(i) == null);
-			// System.out.println();
-			// if(this.children.get(i) == null) {
-			// 	continue;
-			// } 
-
 			int childNr = this.children.get(i).printNodeDot();
 			System.err.printf("node%d -> node%d;\n", myNr, childNr);
 			

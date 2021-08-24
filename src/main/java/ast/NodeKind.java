@@ -48,7 +48,12 @@ public enum NodeKind {
     VAR_DECL_NODE,
     DECLARE_ASSIGN_NODE,
     ASSIGN_NODE,
+    PLUS_ASSIGN_NODE,
+    MINUS_ASSIGN_NODE,
+    PLUS_PLUS_NODE,
+    MINUS_MINUS_NODE,
     IF_NODE,
+    WHILE_NODE,
     FOR_NODE,
     SWITCH_NODE,
     CASE_NODE,
@@ -101,7 +106,12 @@ public enum NodeKind {
             case VAR_DECL_NODE:             return "var_decl";            
             case DECLARE_ASSIGN_NODE:       return ":=";
             case ASSIGN_NODE:               return "=";
+            case PLUS_ASSIGN_NODE:          return "+=";
+            case MINUS_ASSIGN_NODE:         return "-=";
+            case PLUS_PLUS_NODE:            return "++";
+            case MINUS_MINUS_NODE:          return "--";
             case IF_NODE:                   return "if";
+            case WHILE_NODE:                return "while";
             case FOR_NODE:                  return "for";
             case SWITCH_NODE:               return "switch";
             case CASE_NODE:                 return "case";

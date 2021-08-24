@@ -331,25 +331,32 @@ public class SemanticChecker extends GoParserBaseVisitor<AST> {
 	}
 
 
-	// // Visits the rule declare_assign: IDENTIFIER DECLARE_ASSIGN ( array_init | expression) SEMI?
-	// @Override
-	// public Type visitDeclare_assign(GoParser.Declare_assignContext ctx) {
-	// 	Token identifierToken = ctx.IDENTIFIER().getSymbol();
+	// Visits the rule declare_assign: IDENTIFIER DECLARE_ASSIGN ( array_init | expression) SEMI?
+	@Override
+	public AST visitDeclare_assign(GoParser.Declare_assignContext ctx) {
+		Token identifierToken = ctx.IDENTIFIER().getSymbol();
 
-	// 	// Defines lastDeclType based on expression type or array initialization
-	// 	if(ctx.expression() != null) lastDeclType = visit(ctx.expression());
-	// 	if(ctx.array_init() != null) {
-	// 		visit(ctx.array_init());
+		// Defines lastDeclType based on expression type or array initialization
+		AST expression = null;
+		if(ctx.expression() != null) {
+			expression = visit(ctx.expression());
+			lastDeclType = expression.type;
+		}
 
-	// 		// Checks if the array was initialized with the correct amount of indexes
-	// 		checkArrayInit(identifierToken.getLine(), identifierToken.getText());
-	// 	}
+		// TODO
+		if(ctx.array_init() != null) {
+			visit(ctx.array_init());
 
-	// 	// Checks if the variable was previously declared
-	// 	newVar(identifierToken);
+			// Checks if the array was initialized with the correct amount of indexes
+			checkArrayInit(identifierToken.getLine(), identifierToken.getText());
+		}
 
-	// 	return Type.NO_TYPE;
-	// }
+		// Checks if the variable was previously declared
+		AST node = newVar(identifierToken);
+		node.addChild(expression);
+
+		return node;
+	}
 
 	// /*------------------------------------------------------------------------------*
 	//  *Visitor for array_declaration and array_ags rules
@@ -385,23 +392,23 @@ public class SemanticChecker extends GoParserBaseVisitor<AST> {
 	 *	Visitors for input and output
 	 *------------------------------------------------------------------------------*/
 
-	// //  Visits the rule input: INPUT L_PAREN AMPERSAND id R_PAREN
-	// @Override
-	// public Type visitInput(GoParser.InputContext ctx) {
-	// 	// Recursively visits the rule for error checking
-	// 	visit(ctx.id());
+	//  Visits the rule input: INPUT L_PAREN AMPERSAND id R_PAREN
+	@Override
+	public AST visitInput(GoParser.InputContext ctx) {
+		// Recursively visits the rule for error checking
+		AST identifier = visit(ctx.id());
 
-	// 	return Type.NO_TYPE;
-	// }
+		return AST.newSubtree(NodeKind.INPUT_NODE, Type.NO_TYPE, identifier);
+	}
 
-	// // Visits the rule output: OUTPUT L_PAREN expression_list? R_PAREN
-	// @Override
-	// public Type visitOutput(GoParser.OutputContext ctx) {
-	// 	// Recursively visits the rule for error checking
-	// 	visit(ctx.expression_list());
+	// Visits the rule output: OUTPUT L_PAREN expression_list? R_PAREN
+	@Override
+	public AST visitOutput(GoParser.OutputContext ctx) {
+		// Recursively visits the rule for error checking
+		AST expressionList = visit(ctx.expression_list());
 
-	// 	return Type.NO_TYPE;
-	// }
+		return AST.newSubtree(NodeKind.OUTPUT_NODE, Type.NO_TYPE, expressionList);
+	}
 
 	/*------------------------------------------------------------------------------*
 	 *	Visitors for functions related rules
@@ -601,72 +608,81 @@ public class SemanticChecker extends GoParserBaseVisitor<AST> {
 	// 	return Type.NO_TYPE;
 	// }
 
-	// // Visits the rule for_statement: FOR expression? statement_section
-	// @Override
-	// public Type visitWhile(GoParser.WhileContext ctx) {
-	// 	// Checks if there is a expression
-	// 	if(ctx.expression() != null) {
-	// 		Type expressionType = visit(ctx.expression());
+	// Visits the rule for_statement: FOR expression? statement_section
+	@Override
+	public AST visitWhile(GoParser.WhileContext ctx) {
+		// Checks if there is a expression
+		AST expression = null;
+		if(ctx.expression() != null) {
+			expression = visit(ctx.expression());
 	
-	// 		// Checks if the expression has bool type
-	// 		checkBoolExpr(ctx.FOR().getSymbol().getLine(), "for", expressionType);
-	// 	}
+			// Checks if the expression has bool type
+			checkBoolExpr(ctx.FOR().getSymbol().getLine(), "for", expression.type);
+		}
 
-	// 	// Recursively visits the statement_section for error checking
-	// 	visit(ctx.statement_section());
+		// Recursively visits the statement_section for error checking
+		AST statements = visit(ctx.statement_section());
 
-	// 	return Type.NO_TYPE;
-	// }
+		return AST.newSubtree(NodeKind.WHILE_NODE, Type.NO_TYPE, expression, statements);
+	}
 
-	// // Visits the rule or_statement: FOR declare_assign SEMI expression SEMI assign_statement statement_section
-	// @Override
-	// public Type visitFor(GoParser.ForContext ctx) {
-	// 	// Recursively visits rule for error checking
-	// 	visit(ctx.declare_assign());
-
-	// 	Type expressionType = visit(ctx.expression());
-
-	// 	// Checks if the expression has bool type
-	// 	checkBoolExpr(ctx.FOR().getSymbol().getLine(), "for", expressionType);
-
-	// 	// Recursively visits rules for error checking 
-	// 	visit(ctx.assign_statement());
-	// 	visit(ctx.statement_section());
-
-	// 	return Type.NO_TYPE;
-	// }
-
-	// // Visits the rule assign_statement: id op=(ASSIGN | MINUS_ASSIGN | PLUS_ASSIGN) expression SEMI?
-	// @Override
-	// public Type visitAssignExpression(GoParser.AssignExpressionContext ctx) {
-	// 	Type expressionType = visit(ctx.expression());
+	// Visits the rule or_statement: FOR declare_assign SEMI expression SEMI assign_statement statement_section
+	@Override
+	public AST visitFor(GoParser.ForContext ctx) {
+		// Recursively visits rules for error checking 
+		AST declareAssign = visit(ctx.declare_assign());
+		AST expression = visit(ctx.expression());
+		AST assign = visit(ctx.assign_statement());
+		AST statements = visit(ctx.statement_section());
 		
-	// 	// Checks if the variable was previously declared
-	// 	Type identifierType = visit(ctx.id());
+		// Checks if the expression has bool type
+		checkBoolExpr(ctx.FOR().getSymbol().getLine(), "for", expression.type);
+
+		return AST.newSubtree(NodeKind.FOR_NODE, Type.NO_TYPE, declareAssign, expression, assign, statements);
+	}
+
+	// Visits the rule assign_statement: id op=(ASSIGN | MINUS_ASSIGN | PLUS_ASSIGN) expression SEMI?
+	@Override
+	public AST visitAssignExpression(GoParser.AssignExpressionContext ctx) {
+		AST expression = visit(ctx.expression());
 		
-	// 	Token identifierToken = ctx.id().IDENTIFIER().getSymbol();
-
-	// 	// Checks if the assign operation is suported
-	// 	checkAssign(identifierToken.getLine(), ctx.op.getText(), identifierType, expressionType);
-
-	// 	return Type.NO_TYPE;
-	// }
-
-	// // Visits the rule assign_statement: IDENTIFIER op=(PLUS_PLUS | MINUS_MINUS) SEMI?
-	// @Override
-	// public Type visitAssignPPMM(GoParser.AssignPPMMContext ctx) {
-	// 	// Checks if the variable was previously declared
-	// 	Type identifierType = visit(ctx.id());
-
-	// 	Token identifierToken = ctx.id().IDENTIFIER().getSymbol();
-
-	// 	// Checks if the operation is suported
-	// 	checkUnaryOp(identifierToken.getLine(), ctx.op.getText(), identifierType);
+		// Checks if the variable was previously declared
+		AST identifier = visit(ctx.id());
 		
-	// 	// Since the assignment wont change the var type, there is no need 
-	// 	// to call the checkAssign function
-	// 	return Type.NO_TYPE;
-	// }
+		Token identifierToken = ctx.id().IDENTIFIER().getSymbol();
+
+		// Checks if the assign operation is suported
+		checkAssign(identifierToken.getLine(), ctx.op.getText(), identifier.type, expression.type);
+
+		// Defines which node kind the assign has
+		NodeKind kind = null;
+		int op = ctx.op.getType();
+		if(op == GoParser.ASSIGN)		kind = NodeKind.ASSIGN_NODE;
+		if(op == GoParser.PLUS_ASSIGN)	kind = NodeKind.PLUS_ASSIGN_NODE;
+		if(op == GoParser.MINUS_ASSIGN)	kind = NodeKind.MINUS_ASSIGN_NODE;
+
+		return AST.newSubtree(kind, Type.NO_TYPE, identifier, expression);
+	}
+
+	// Visits the rule assign_statement: IDENTIFIER op=(PLUS_PLUS | MINUS_MINUS) SEMI?
+	@Override
+	public AST visitAssignPPMM(GoParser.AssignPPMMContext ctx) {
+		// Checks if the variable was previously declared
+		AST identifier = visit(ctx.id());
+
+		Token identifierToken = ctx.id().IDENTIFIER().getSymbol();
+
+		// Checks if the operation is suported
+		checkUnaryOp(identifierToken.getLine(), ctx.op.getText(), identifier.type);
+		
+		// Since the assignment wont change the var type, there is no need 
+		// to call the checkAssign function
+		if(ctx.op.getType() == GoParser.PLUS_PLUS) {
+			return AST.newSubtree(NodeKind.PLUS_PLUS_NODE, Type.NO_TYPE, identifier);
+		} else { // Minus-minus
+			return AST.newSubtree(NodeKind.MINUS_MINUS_NODE, Type.NO_TYPE, identifier);
+		}
+	}
 
 	// // Visits the rule switch_statement: SWITCH id? L_CURLY case_statement R_CURLY
 	// @Override
@@ -909,8 +925,7 @@ public class SemanticChecker extends GoParserBaseVisitor<AST> {
 	// Visits the rule expression: BOOLEAN_LIT
 	@Override
 	public AST visitBoolVal(GoParser.BoolValContext ctx) {
-		System.out.println(ctx.getText());
-		if(ctx.getText() == "true") {
+		if(ctx.getText().equals("true")) {
 			return new AST(NodeKind.BOOL_VAL_NODE, 1, Type.BOOL_TYPE);
 		} else {
 			return new AST(NodeKind.BOOL_VAL_NODE, 0, Type.BOOL_TYPE);
