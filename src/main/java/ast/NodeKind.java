@@ -44,6 +44,7 @@ public enum NodeKind {
 	 *---------------------------------*/
     
     STATEMENT_SECTION_NODE,
+    RETURN_NODE,
     VAR_DECL_NODE,
     DECLARE_ASSIGN_NODE,
     ASSIGN_NODE,
@@ -60,6 +61,8 @@ public enum NodeKind {
     
     FUNC_MAIN_NODE,
     FUNC_DECL_NODE,
+    FUNC_ARGS_NODE,
+    EXPRESSION_LIST_NODE,
     
     // ----------------------------------------------------
 
@@ -105,9 +108,12 @@ public enum NodeKind {
             case DEFAULT_NODE:              return "default";
             case FUNC_CALL_NODE:            return "func_call";
             case STATEMENT_SECTION_NODE:    return "statement_sect";
+            case RETURN_NODE:               return "return";
             
-            case FUNC_MAIN_NODE:    return "func_main";
-            case FUNC_DECL_NODE:    return "func_decl";
+            case FUNC_MAIN_NODE:        return "func_main";
+            case FUNC_DECL_NODE:        return "func_decl";
+            case FUNC_ARGS_NODE:        return "func_args";
+            case EXPRESSION_LIST_NODE:  return "expression_list";
 
             case PROGRAM_NODE:      return "program";
             case FUNC_LIST_NODE:    return "func_list";

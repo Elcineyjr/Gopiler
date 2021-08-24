@@ -33,6 +33,8 @@ public class AST {
 
 	// Add child to node
 	public void addChild(AST child) {
+		if(child == null) return;
+		
 		this.children.add(child);
 	}
 
@@ -76,7 +78,10 @@ public class AST {
 	    if (this.type != NO_TYPE) {
 	    	System.err.printf("(%s) ", this.type.toString());
 	    }
-	    if (this.kind == NodeKind.VAR_DECL_NODE || this.kind == NodeKind.VAR_USE_NODE) {
+	    if (this.kind == NodeKind.VAR_DECL_NODE 
+			|| this.kind == NodeKind.VAR_USE_NODE 
+			|| this.kind == NodeKind.DECLARE_ASSIGN_NODE
+			) {
 	    	System.err.printf("%s@", vt.getName(this.intData));
 	    } else {
 	    	System.err.printf("%s", this.kind.toString());
