@@ -8,3 +8,5 @@ target
 lexer
 parser
 bin
+ast.dot
+ast.pdf

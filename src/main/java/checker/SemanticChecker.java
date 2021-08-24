@@ -2,6 +2,8 @@ package checker;
 
 import org.antlr.v4.runtime.Token;
 
+import ast.AST;
+import ast.NodeKind;
 import parser.GoParser;
 import parser.GoParserBaseVisitor;
 import tables.FuncTable;
@@ -20,7 +22,7 @@ import typing.Type;
 
 
 
-public class SemanticChecker extends GoParserBaseVisitor<Type> {
+public class SemanticChecker extends GoParserBaseVisitor<AST> {
 
 	private StrTable st = new StrTable(); // Tabela de strings.
 	private VarTable vt = new VarTable(); // Tabela de variáveis.
@@ -31,11 +33,7 @@ public class SemanticChecker extends GoParserBaseVisitor<Type> {
 	int lastDeclArgsSize; // Global variable with the last declared argsSize 
 	int lastExpressionListSize;
 
-	private boolean passed = true;
-
-	boolean hasPassed() {
-		return passed;
-	}
+	AST root;
 
 	void printTables() {
 		System.out.print("\n\n");
@@ -47,25 +45,29 @@ public class SemanticChecker extends GoParserBaseVisitor<Type> {
 		System.out.print("\n\n");
 	}
 
+	// Exibe a AST no formato DOT em stderr.
+    void printAST() {
+    	AST.printDot(root, vt);
+    }
+
 	/*------------------------------------------------------------------------------*
 	 *	Var checking and declaration.
 	 *------------------------------------------------------------------------------*/
 
 	// Checks whether the variable was previously declared
-	Type checkVar(Token token) {
+	AST checkVar(Token token) {
 		String text = token.getText();
 		int line = token.getLine();
 		int idx = vt.lookupVar(text);
 		if (idx == -1) {
 			System.err.printf("SEMANTIC ERROR (%d): variable '%s' was not declared.\n", line, text);
-			passed = false;
-			return Type.NO_TYPE;
+			System.exit(1);
 		}
-		return vt.getType(idx);
+		return new AST(NodeKind.VAR_USE_NODE, idx, vt.getType(idx));
 	}
 
 	// Creates a new variable from token
-	void newVar(Token token) {
+	AST newVar(Token token) {
 		String text = token.getText();
 		int line = token.getLine();
 		int idx = vt.lookupVar(text);
@@ -73,10 +75,10 @@ public class SemanticChecker extends GoParserBaseVisitor<Type> {
 			System.err.printf("SEMANTIC ERROR (%d): variable '%s' already declared at line %d.\n",
 				line, text, vt.getLine(idx)
 			);
-			passed = false;
-			return;
+			System.exit(1);
 		}
-		vt.addVar(text, line, lastDeclType);
+		idx = vt.addVar(text, line, lastDeclType);
+		return new AST(NodeKind.VAR_DECL_NODE, idx, lastDeclType);
 	}
 
 	/*------------------------------------------------------------------------------*
@@ -84,20 +86,19 @@ public class SemanticChecker extends GoParserBaseVisitor<Type> {
 	 *------------------------------------------------------------------------------*/
 
 	// Checks whether the function was previously declared
-	Type checkFunc(Token token) {
+	AST checkFunc(Token token) {
 		String text = token.getText();
 		int line = token.getLine();
 		int idx = ft.lookupFunc(text);
 		if (idx == -1) {
 			System.err.printf("SEMANTIC ERROR (%d): function '%s' was not declared.\n", line, text);
-			passed = false;
-			return Type.NO_TYPE;
+			System.exit(1);
 		}
-		return ft.getType(idx);
+		return new AST(NodeKind.FUNC_CALL_NODE, idx, ft.getType(idx));
 	}
 
 	// Creates a new function from token
-	void newFunc(Token token, int argsSize) {
+	AST newFunc(Token token, int argsSize) {
 		String text = token.getText();
 		int line = token.getLine();
 		int idx = ft.lookupFunc(text);
@@ -105,10 +106,10 @@ public class SemanticChecker extends GoParserBaseVisitor<Type> {
 			System.err.printf("SEMANTIC ERROR (%d): function '%s' already declared at line %d.\n",
 				line, text, ft.getLine(idx)
 			);
-			passed = false;
-			return;
+			System.exit(1);
 		}
-		ft.addFunc(text, line, lastDeclFuncType, argsSize);
+		idx = ft.addFunc(text, line, lastDeclFuncType, argsSize);
+		return new AST(NodeKind.FUNC_DECL_NODE, idx, lastDeclFuncType);
 	}
 
 	// Checks if the function was called with the right amount of arguments
@@ -126,7 +127,7 @@ public class SemanticChecker extends GoParserBaseVisitor<Type> {
 				System.err.printf("SEMANTIC ERROR (%d): function '%s' expected %d arguments but received '%d'.\n",
 					line, text, argsSize, lastExpressionListSize
 				);
-				passed = false;
+				System.exit(1);
 			}
 		}
 	}
@@ -138,7 +139,7 @@ public class SemanticChecker extends GoParserBaseVisitor<Type> {
 				"SEMANTIC ERROR (%d): Return statement type incompatible with function type. Expected '%s' but received '%s'.\n",
 				lineNo, lastDeclFuncType, t
 			);
-			passed = false;
+			System.exit(1);
 		}
 	}
 
@@ -151,7 +152,7 @@ public class SemanticChecker extends GoParserBaseVisitor<Type> {
 			"SEMANTIC ERROR (%d): incompatible types for operator '%s', LHS is '%s' and RHS is '%s'.\n",
 			lineNo, op, t1.toString(), t2.toString()
 		);
-    	passed = false;
+		System.exit(1);
     }
 
 	private void checkUnaryOp(int lineNo, String op, Type t) {
@@ -160,15 +161,15 @@ public class SemanticChecker extends GoParserBaseVisitor<Type> {
 				"SEMANTIC ERROR (%d): type '%s' not suported for unary operator '%s'.\n",
 				lineNo, t.toString(), op
 			);
-    		passed = false;
+			System.exit(1);
 		}
 	}
 
 	private void checkAssign(int lineNo, String op,Type l, Type r) {
-        if (l == Type.BOOL_TYPE && r != Type.BOOL_TYPE) typeError(lineNo, op, l, r);
-        if (l == Type.STRING_TYPE  && r != Type.STRING_TYPE)  typeError(lineNo, op, l, r);
-        if (l == Type.INT_TYPE  && r != Type.INT_TYPE)  typeError(lineNo, op, l, r);
-        if (l == Type.FLOAT32_TYPE && !(r == Type.INT_TYPE || r == Type.FLOAT32_TYPE)) typeError(lineNo, op, l, r);
+        if (l != r) {
+			typeError(lineNo, op, l, r);
+			System.exit(1);
+		} 
     }
 
 	private void checkBoolExpr(int lineNo, String cmd, Type t) {
@@ -177,7 +178,7 @@ public class SemanticChecker extends GoParserBaseVisitor<Type> {
 				"SEMANTIC ERROR (%d): conditional expression in '%s' is '%s' instead of '%s'.\n",
 				lineNo, cmd, t.toString(), Type.BOOL_TYPE.toString()
 			);
-			passed = false;
+			System.exit(1);
 		}
 	}
 
@@ -187,7 +188,7 @@ public class SemanticChecker extends GoParserBaseVisitor<Type> {
 				"SEMANTIC ERROR (%d): incompatible type '%s' at array index.\n",
 				lineNo, t.toString()
 			);
-			passed = false;
+			System.exit(1);
 		}
     }
 
@@ -197,7 +198,7 @@ public class SemanticChecker extends GoParserBaseVisitor<Type> {
 				"SEMANTIC ERROR (%d): incompatible types for case, expected '%s' but expression is '%s'.\n",
 				lineNo, t1.toString(), t2.toString()
 			);
-			passed = false;
+			System.exit(1);
 		}
 	}
 
@@ -208,14 +209,14 @@ public class SemanticChecker extends GoParserBaseVisitor<Type> {
 			"SEMANTIC ERROR (%d): incompatible types when declaring variable '%s', var type is '%s' and expression type is '%s'.\n",
 			lineNo, varName, t1.toString(), t2.toString()
 		);
-    	passed = false;
+		System.exit(1);
     }
 
 	private void checkInitAssign(int lineNo, String varName, Type l, Type r) {
-        if (l == Type.BOOL_TYPE && r != Type.BOOL_TYPE) typeInitError(lineNo, varName, l, r);
-        if (l == Type.STRING_TYPE  && r != Type.STRING_TYPE)  typeInitError(lineNo, varName, l, r);
-        if (l == Type.INT_TYPE  && r != Type.INT_TYPE)  typeInitError(lineNo, varName, l, r);
-        if (l == Type.FLOAT32_TYPE && !(r == Type.INT_TYPE || r == Type.FLOAT32_TYPE)) typeInitError(lineNo, varName, l, r);
+        if (l != r ) {
+			typeInitError(lineNo, varName, l, r);
+			System.exit(1);
+		}
     }
     
 	private void checkArrayInit(int lineNo, String varName) {
@@ -224,8 +225,31 @@ public class SemanticChecker extends GoParserBaseVisitor<Type> {
 				"SEMANTIC ERROR (%d): Array '%s' declared with size %d but initialized with %d arguments.\n",
 				lineNo, varName, lastDeclArgsSize, lastExpressionListSize
 			);
-			passed = false;
+			System.exit(1);
 		}
+	}
+
+	/*------------------------------------------------------------------------------*
+	 *	Visitor for program rule
+	 *------------------------------------------------------------------------------*/
+
+	// Visits the rule program: PACKAGE MAIN import_section? func_section
+    @Override
+	public AST visitProgram(GoParser.ProgramContext ctx) {
+		AST funcSection = visit(ctx.func_section());
+
+		// Creates the root node for the program
+		this.root = AST.newSubtree(NodeKind.PROGRAM_NODE, Type.NO_TYPE, funcSection);
+
+		// TODO
+		// Since the import is optional we can add a new child if necessary
+		// if(ctx.import_section() != null) {
+		// 	AST importSection = visit(ctx.import_section());
+
+		// 	this.root.addChild(importSection);
+		// }
+
+		return this.root;
 	}
 
 	/*------------------------------------------------------------------------------*
@@ -234,30 +258,30 @@ public class SemanticChecker extends GoParserBaseVisitor<Type> {
 
 	// Visits the rule var_types: INT
 	@Override
-	public Type visitIntType(GoParser.IntTypeContext ctx) {
+	public AST visitIntType(GoParser.IntTypeContext ctx) {
 		this.lastDeclType = Type.INT_TYPE;
-		return Type.NO_TYPE;
+		return null;
 	}
 
 	// Visits the rule var_types: STRING
 	@Override
-	public Type visitStringType(GoParser.StringTypeContext ctx) {
+	public AST visitStringType(GoParser.StringTypeContext ctx) {
 		this.lastDeclType = Type.STRING_TYPE;
-		return Type.NO_TYPE;
+		return null;
 	}
 
 	// Visits the rule var_types: BOOL
 	@Override
-	public Type visitBoolType(GoParser.BoolTypeContext ctx) {
+	public AST visitBoolType(GoParser.BoolTypeContext ctx) {
 		this.lastDeclType = Type.BOOL_TYPE;
-		return Type.NO_TYPE;
+		return null;
 	}
 	
 	// Visits the rule var_types: FLOAT32
 	@Override
-	public Type visitFloat32Type(GoParser.Float32TypeContext ctx) {
+	public AST visitFloat32Type(GoParser.Float32TypeContext ctx) {
 		this.lastDeclType = Type.FLOAT32_TYPE;
-		return Type.NO_TYPE;
+		return null;
 	}
 
 	/*------------------------------------------------------------------------------*
@@ -266,7 +290,7 @@ public class SemanticChecker extends GoParserBaseVisitor<Type> {
 
 	// Visits the rule var_declaration: VAR IDENTIFIER (var_types | var_types? ASSIGN  expression | array_declaration) SEMI?
 	@Override
-	public Type visitVar_declaration(GoParser.Var_declarationContext ctx) {	
+	public AST visitVar_declaration(GoParser.Var_declarationContext ctx) {	
 		// Check wheter the variable is an array or a normal variable
 		if(ctx.array_declaration() != null) {
 			// Recursively visits the array_declaration to define the array type
@@ -283,99 +307,101 @@ public class SemanticChecker extends GoParserBaseVisitor<Type> {
 				visit(ctx.var_types());
 			} else {
 				// Defines lastDeclType based on expression type
-				lastDeclType = visit(ctx.expression());
+				lastDeclType = visit(ctx.expression()).type;
 			}
 		}
 
 		Token identifierToken = ctx.IDENTIFIER().getSymbol();
 
 		// Checks if the variable was previously declared
-		newVar(identifierToken);
-		
+		AST varDecl = newVar(identifierToken);
+
 		boolean hasAssign = ctx.ASSIGN() != null;
 		// Checks if the identifier type and expression type match
 		if(hasAssign) {
-			Type identifierType = checkVar(identifierToken);
-			Type expressionType = visit(ctx.expression());
+			Type identifierType = checkVar(identifierToken).type;
+			AST expression = visit(ctx.expression());
 
-			checkInitAssign(identifierToken.getLine(), identifierToken.getText(), identifierType, expressionType);
+			checkInitAssign(identifierToken.getLine(), identifierToken.getText(), identifierType, expression.type);
+			
+			varDecl.addChild(expression);
 		}
 
-		return Type.NO_TYPE;
+		return varDecl;
 	}
 
 
-	// Visits the rule declare_assign: IDENTIFIER DECLARE_ASSIGN ( array_init | expression) SEMI?
-	@Override
-	public Type visitDeclare_assign(GoParser.Declare_assignContext ctx) {
-		Token identifierToken = ctx.IDENTIFIER().getSymbol();
+	// // Visits the rule declare_assign: IDENTIFIER DECLARE_ASSIGN ( array_init | expression) SEMI?
+	// @Override
+	// public Type visitDeclare_assign(GoParser.Declare_assignContext ctx) {
+	// 	Token identifierToken = ctx.IDENTIFIER().getSymbol();
 
-		// Defines lastDeclType based on expression type or array initialization
-		if(ctx.expression() != null) lastDeclType = visit(ctx.expression());
-		if(ctx.array_init() != null) {
-			visit(ctx.array_init());
+	// 	// Defines lastDeclType based on expression type or array initialization
+	// 	if(ctx.expression() != null) lastDeclType = visit(ctx.expression());
+	// 	if(ctx.array_init() != null) {
+	// 		visit(ctx.array_init());
 
-			// Checks if the array was initialized with the correct amount of indexes
-			checkArrayInit(identifierToken.getLine(), identifierToken.getText());
-		}
+	// 		// Checks if the array was initialized with the correct amount of indexes
+	// 		checkArrayInit(identifierToken.getLine(), identifierToken.getText());
+	// 	}
 
-		// Checks if the variable was previously declared
-		newVar(identifierToken);
+	// 	// Checks if the variable was previously declared
+	// 	newVar(identifierToken);
 
-		return Type.NO_TYPE;
-	}
+	// 	return Type.NO_TYPE;
+	// }
 
-	/*------------------------------------------------------------------------------*
-	 *Visitor for array_declaration and array_ags rules
-	 *------------------------------------------------------------------------------*/
+	// /*------------------------------------------------------------------------------*
+	//  *Visitor for array_declaration and array_ags rules
+	//  *------------------------------------------------------------------------------*/
 
-	// Visits the rule array_declaration: L_BRACKET DECIMAL_LIT R_BRACKET var_types
-	@Override
-	public Type visitArray_declaration(GoParser.Array_declarationContext ctx) {
-		// Defines the array size
-		lastDeclArgsSize = Integer.parseInt(ctx.DECIMAL_LIT().getText());
+	// // Visits the rule array_declaration: L_BRACKET DECIMAL_LIT R_BRACKET var_types
+	// @Override
+	// public Type visitArray_declaration(GoParser.Array_declarationContext ctx) {
+	// 	// Defines the array size
+	// 	lastDeclArgsSize = Integer.parseInt(ctx.DECIMAL_LIT().getText());
 
-		// Defines lastDeclType 
-		visit(ctx.var_types());
+	// 	// Defines lastDeclType 
+	// 	visit(ctx.var_types());
 
-		return Type.NO_TYPE;
-	}
+	// 	return Type.NO_TYPE;
+	// }
 
-	// Visits the rule array_init: array_declaration L_CURLY expression_list? R_CURLY
-	@Override
-	public Type visitArray_init(GoParser.Array_initContext ctx) {
-		// Recursively visits the rule for error checking
-		visit(ctx.array_declaration());
+	// // Visits the rule array_init: array_declaration L_CURLY expression_list? R_CURLY
+	// @Override
+	// public Type visitArray_init(GoParser.Array_initContext ctx) {
+	// 	// Recursively visits the rule for error checking
+	// 	visit(ctx.array_declaration());
 
-		if(ctx.expression_list() != null) {
-			// Recursively visits the rule for error checking
-			visit(ctx.expression_list());
-		} 
+	// 	if(ctx.expression_list() != null) {
+	// 		// Recursively visits the rule for error checking
+	// 		visit(ctx.expression_list());
+	// 	} 
 
-		return Type.NO_TYPE;
-	}
+	// 	return Type.NO_TYPE;
+	// }
 
 	/*------------------------------------------------------------------------------*
 	 *	Visitors for input and output
 	 *------------------------------------------------------------------------------*/
 
-	//  Visits the rule input: INPUT L_PAREN AMPERSAND id R_PAREN
-	@Override
-	public Type visitInput(GoParser.InputContext ctx) {
-		// Recursively visits the rule for error checking
-		visit(ctx.id());
+	// //  Visits the rule input: INPUT L_PAREN AMPERSAND id R_PAREN
+	// @Override
+	// public Type visitInput(GoParser.InputContext ctx) {
+	// 	// Recursively visits the rule for error checking
+	// 	visit(ctx.id());
 
-		return Type.NO_TYPE;
-	}
+	// 	return Type.NO_TYPE;
+	// }
 
-	// Visits the rule output: OUTPUT L_PAREN expression_list? R_PAREN
-	@Override
-	public Type visitOutput(GoParser.OutputContext ctx) {
-		// Recursively visits the rule for error checking
-		visit(ctx.expression_list());
+	// // Visits the rule output: OUTPUT L_PAREN expression_list? R_PAREN
+	// @Override
+	// public Type visitOutput(GoParser.OutputContext ctx) {
+	// 	// Recursively visits the rule for error checking
+	// 	visit(ctx.expression_list());
 
-		return Type.NO_TYPE;
-	}
+	// 	return Type.NO_TYPE;
+	// }
 
 	/*------------------------------------------------------------------------------*
 	 *	Visitors for functions related rules
@@ -384,7 +410,7 @@ public class SemanticChecker extends GoParserBaseVisitor<Type> {
 	//  TODOs: handle args declaration inside function scope
 	// Visits the rule func_declaration: FUNC IDENTIFIER L_PAREN func_args? R_PAREN var_types? statement_section
 	@Override
-	public Type visitFunc_declaration(GoParser.Func_declarationContext ctx) {
+	public AST visitFunc_declaration(GoParser.Func_declarationContext ctx) {
 		
 		if(ctx.var_types() != null) {
 			// Defines lastDeclType 
@@ -406,51 +432,97 @@ public class SemanticChecker extends GoParserBaseVisitor<Type> {
 			lastDeclArgsSize = 0;
 		}
 		
-		// Checks if the function was previously declared
-		newFunc(ctx.IDENTIFIER().getSymbol(), lastDeclArgsSize);
-
 		// Recursively visits rule for error checking
-		visit(ctx.statement_section());
+		AST statements = visit(ctx.statement_section());
+		
+		// Checks if the function was previously declared		
+		AST funcDecl = newFunc(ctx.IDENTIFIER().getSymbol(), lastDeclArgsSize);
 
-		return Type.NO_TYPE;
+		// Adds the statements as function's child
+		funcDecl.addChild(statements);
+
+		return funcDecl;
 	}
 
-	// Visits the rule func_args: id var_types (COMMA id var_types)*
-	@Override
-	public Type visitFunc_args(GoParser.Func_argsContext ctx) {
-		lastDeclArgsSize = ctx.id().size();
+	// // Visits the rule func_args: id var_types (COMMA id var_types)*
+	// @Override
+	// public Type visitFunc_args(GoParser.Func_argsContext ctx) {
+	// 	lastDeclArgsSize = ctx.id().size();
 
-		// TODO: handle scopes, for now its just adding into the global var table
-		// Adds every argument into the var table
-		for(int i = 0; i < ctx.id().size(); i++) {
-			// Defines lastDeclType
-			visit(ctx.var_types(i));
+	// 	// TODO: handle scopes, for now its just adding into the global var table
+	// 	// Adds every argument into the var table
+	// 	for(int i = 0; i < ctx.id().size(); i++) {
+	// 		// Defines lastDeclType
+	// 		visit(ctx.var_types(i));
 
-			// Checks if the variable was previously declared
-			newVar(ctx.id(i).IDENTIFIER().getSymbol());
+	// 		// Checks if the variable was previously declared
+	// 		newVar(ctx.id(i).IDENTIFIER().getSymbol());
 
-			// Recursively visits the rule for error checking
-			visit(ctx.id(i));
-		}
+	// 		// Recursively visits the rule for error checking
+	// 		visit(ctx.id(i));
+	// 	}
 
-		return Type.NO_TYPE;
-	}
+	// 	return Type.NO_TYPE;
+	// }
 
 	// Visits the rule func_section: func_declaration* func_main func_declaration*
 	@Override
-	public Type visitFunc_section(GoParser.Func_sectionContext ctx) {
+	public AST visitFunc_section(GoParser.Func_sectionContext ctx) {
+		// Visits the main function for error checking
+		AST mainFunc = visit(ctx.func_main());
+		
+		// Adds the main function as child to func_section
+		AST node = AST.newSubtree(NodeKind.FUNC_LIST_NODE, Type.NO_TYPE, mainFunc);
+
 		// Checks if there is any other function declaration besides the main function
 		if(ctx.func_declaration() != null) {
 			// Recursively visits the functions for error checking
 			for (GoParser.Func_declarationContext funcDecl : ctx.func_declaration()) {
-				visit(funcDecl);
+					AST child = visit(funcDecl);
+					node.addChild(child);
 			}
 		}
 
-		// Finally visits the main function for error checking
-		visit(ctx.func_main());
+		return node;
+	}
 
-		return Type.NO_TYPE;
+	@Override
+	public AST visitFunc_main(GoParser.Func_mainContext ctx) {
+		if(ctx.var_types() != null) {
+			// Defines lastDeclType 
+			visit(ctx.var_types());
+		} else {
+			// Function has no return type
+			lastDeclType = Type.NO_TYPE;
+		}
+
+		// Saves the func type before the lastDeclType be overwritten
+		// by the args declaration
+		lastDeclFuncType = lastDeclType;
+
+		if(ctx.func_args() != null) {
+			// Defines lastDeclArgsSize
+			visit(ctx.func_args());
+		} else {
+			// Function has no args
+			lastDeclArgsSize = 0;
+		}
+		
+		// Recursively visits rule for error checking
+		AST statements = visit(ctx.statement_section());
+
+		Token mainToken = ctx.MAIN().getSymbol();
+
+		// Adds the main function into the functions table
+		int idx = ft.addFunc(mainToken.getText(), mainToken.getLine(), lastDeclFuncType, lastDeclArgsSize);		 
+
+		// Creates the node for the main function
+		AST mainFunc = new AST(NodeKind.FUNC_MAIN_NODE, idx, lastDeclFuncType);
+
+		// Adds the statements as function's child
+		mainFunc.addChild(statements);
+
+		return mainFunc;
 	}
 
 	/*------------------------------------------------------------------------------*
@@ -459,342 +531,354 @@ public class SemanticChecker extends GoParserBaseVisitor<Type> {
 
 	// Visits the rule statement_section: L_CURLY statement* return_statement? R_CURLY
 	@Override
-	public Type visitStatement_section(GoParser.Statement_sectionContext ctx) {
+	public AST visitStatement_section(GoParser.Statement_sectionContext ctx) {
+		AST node = AST.newSubtree(NodeKind.STATEMENT_SECTION_NODE, Type.NO_TYPE);
+
 		// Recursively visits every statement for error checking
 		for (GoParser.StatementContext stmt : ctx.statement()) {
-			visit(stmt);
+			AST child = visit(stmt);
+			node.addChild(child);
 		}
 
+		// TODO
 		if(ctx.return_statement() != null) {
 			// Recursively visits the rule for error checking
 			visit(ctx.return_statement());
 		}
 
-		return Type.NO_TYPE;
+		return node;
 	}
 
-	// Visits the rule return_statement: RETURN expression SEMI?
-	@Override
-	public Type visitReturn_statement(GoParser.Return_statementContext ctx) {
-		Type expressionType = Type.NO_TYPE;
+	// // Visits the rule return_statement: RETURN expression SEMI?
+	// @Override
+	// public Type visitReturn_statement(GoParser.Return_statementContext ctx) {
+	// 	Type expressionType = Type.NO_TYPE;
 		
-		if(ctx.expression() != null) {
-			expressionType = visit(ctx.expression());
-		}
+	// 	if(ctx.expression() != null) {
+	// 		expressionType = visit(ctx.expression());
+	// 	}
 
-		// Checks if the function return type and expression type match
-		checkFuncReturnType(ctx.RETURN().getSymbol().getLine(), expressionType);
+	// 	// Checks if the function return type and expression type match
+	// 	checkFuncReturnType(ctx.RETURN().getSymbol().getLine(), expressionType);
 
-		return Type.NO_TYPE;
-	}
+	// 	return Type.NO_TYPE;
+	// }
 
-	// Visits the rule if_statement: IF expression statement_section (ELSE statement_section)?
-	@Override
-	public Type visitIf_statement(GoParser.If_statementContext ctx) {
-		Type expressionType = visit(ctx.expression());
+	// // Visits the rule if_statement: IF expression statement_section (ELSE statement_section)?
+	// @Override
+	// public Type visitIf_statement(GoParser.If_statementContext ctx) {
+	// 	Type expressionType = visit(ctx.expression());
 
-		// Checks expression to see if it is bool type 
-		checkBoolExpr(ctx.IF().getSymbol().getLine(), "if", expressionType);
+	// 	// Checks expression to see if it is bool type 
+	// 	checkBoolExpr(ctx.IF().getSymbol().getLine(), "if", expressionType);
 
-		// Recursively visits the statement_section from the if block for error checking
-		visit(ctx.statement_section(0));
+	// 	// Recursively visits the statement_section from the if block for error checking
+	// 	visit(ctx.statement_section(0));
 
-		// Recursively visits the statement_section from the else block for error checking
-		if(ctx.ELSE() != null) {
-			visit(ctx.statement_section(1));
-		} 
+	// 	// Recursively visits the statement_section from the else block for error checking
+	// 	if(ctx.ELSE() != null) {
+	// 		visit(ctx.statement_section(1));
+	// 	} 
 
-		return Type.NO_TYPE;
-	}
+	// 	return Type.NO_TYPE;
+	// }
 
-	// Visits the rule for_statement: FOR expression? statement_section
-	@Override
-	public Type visitWhile(GoParser.WhileContext ctx) {
-		// Checks if there is a expression
-		if(ctx.expression() != null) {
-			Type expressionType = visit(ctx.expression());
+	// // Visits the rule for_statement: FOR expression? statement_section
+	// @Override
+	// public Type visitWhile(GoParser.WhileContext ctx) {
+	// 	// Checks if there is a expression
+	// 	if(ctx.expression() != null) {
+	// 		Type expressionType = visit(ctx.expression());
 	
-			// Checks if the expression has bool type
-			checkBoolExpr(ctx.FOR().getSymbol().getLine(), "for", expressionType);
-		}
+	// 		// Checks if the expression has bool type
+	// 		checkBoolExpr(ctx.FOR().getSymbol().getLine(), "for", expressionType);
+	// 	}
 
-		// Recursively visits the statement_section for error checking
-		visit(ctx.statement_section());
+	// 	// Recursively visits the statement_section for error checking
+	// 	visit(ctx.statement_section());
 
-		return Type.NO_TYPE;
-	}
+	// 	return Type.NO_TYPE;
+	// }
 
-	// Visits the rule or_statement: FOR declare_assign SEMI expression SEMI assign_statement statement_section
-	@Override
-	public Type visitFor(GoParser.ForContext ctx) {
-		// Recursively visits rule for error checking
-		visit(ctx.declare_assign());
+	// // Visits the rule or_statement: FOR declare_assign SEMI expression SEMI assign_statement statement_section
+	// @Override
+	// public Type visitFor(GoParser.ForContext ctx) {
+	// 	// Recursively visits rule for error checking
+	// 	visit(ctx.declare_assign());
 
-		Type expressionType = visit(ctx.expression());
+	// 	Type expressionType = visit(ctx.expression());
 
-		// Checks if the expression has bool type
-		checkBoolExpr(ctx.FOR().getSymbol().getLine(), "for", expressionType);
+	// 	// Checks if the expression has bool type
+	// 	checkBoolExpr(ctx.FOR().getSymbol().getLine(), "for", expressionType);
 
-		// Recursively visits rules for error checking 
-		visit(ctx.assign_statement());
-		visit(ctx.statement_section());
+	// 	// Recursively visits rules for error checking 
+	// 	visit(ctx.assign_statement());
+	// 	visit(ctx.statement_section());
 
-		return Type.NO_TYPE;
-	}
+	// 	return Type.NO_TYPE;
+	// }
 
-	// Visits the rule assign_statement: id op=(ASSIGN | MINUS_ASSIGN | PLUS_ASSIGN) expression SEMI?
-	@Override
-	public Type visitAssignExpression(GoParser.AssignExpressionContext ctx) {
-		Type expressionType = visit(ctx.expression());
+	// // Visits the rule assign_statement: id op=(ASSIGN | MINUS_ASSIGN | PLUS_ASSIGN) expression SEMI?
+	// @Override
+	// public Type visitAssignExpression(GoParser.AssignExpressionContext ctx) {
+	// 	Type expressionType = visit(ctx.expression());
 		
-		// Checks if the variable was previously declared
-		Type identifierType = visit(ctx.id());
+	// 	// Checks if the variable was previously declared
+	// 	Type identifierType = visit(ctx.id());
 		
-		Token identifierToken = ctx.id().IDENTIFIER().getSymbol();
+	// 	Token identifierToken = ctx.id().IDENTIFIER().getSymbol();
 
-		// Checks if the assign operation is suported
-		checkAssign(identifierToken.getLine(), ctx.op.getText(), identifierType, expressionType);
+	// 	// Checks if the assign operation is suported
+	// 	checkAssign(identifierToken.getLine(), ctx.op.getText(), identifierType, expressionType);
 
-		return Type.NO_TYPE;
-	}
+	// 	return Type.NO_TYPE;
+	// }
 
-	// Visits the rule assign_statement: IDENTIFIER op=(PLUS_PLUS | MINUS_MINUS) SEMI?
-	@Override
-	public Type visitAssignPPMM(GoParser.AssignPPMMContext ctx) {
-		// Checks if the variable was previously declared
-		Type identifierType = visit(ctx.id());
+	// // Visits the rule assign_statement: IDENTIFIER op=(PLUS_PLUS | MINUS_MINUS) SEMI?
+	// @Override
+	// public Type visitAssignPPMM(GoParser.AssignPPMMContext ctx) {
+	// 	// Checks if the variable was previously declared
+	// 	Type identifierType = visit(ctx.id());
 
-		Token identifierToken = ctx.id().IDENTIFIER().getSymbol();
+	// 	Token identifierToken = ctx.id().IDENTIFIER().getSymbol();
 
-		// Checks if the operation is suported
-		checkUnaryOp(identifierToken.getLine(), ctx.op.getText(), identifierType);
+	// 	// Checks if the operation is suported
+	// 	checkUnaryOp(identifierToken.getLine(), ctx.op.getText(), identifierType);
 		
-		// Since the assignment wont change the var type, there is no need 
-		// to call the checkAssign function
-		return Type.NO_TYPE;
-	}
+	// 	// Since the assignment wont change the var type, there is no need 
+	// 	// to call the checkAssign function
+	// 	return Type.NO_TYPE;
+	// }
 
-	// Visits the rule switch_statement: SWITCH id? L_CURLY case_statement R_CURLY
-	@Override
-	public Type visitSwitch_statement(GoParser.Switch_statementContext ctx) {
-		// Checks if there is a identifier or func call to be evaluated
-		// and recursively visits the rule for error checking
-		if(ctx.id() != null) visit(ctx.id());	
-		if(ctx.func_call() != null) visit(ctx.func_call());	
+	// // Visits the rule switch_statement: SWITCH id? L_CURLY case_statement R_CURLY
+	// @Override
+	// public Type visitSwitch_statement(GoParser.Switch_statementContext ctx) {
+	// 	// Checks if there is a identifier or func call to be evaluated
+	// 	// and recursively visits the rule for error checking
+	// 	if(ctx.id() != null) visit(ctx.id());	
+	// 	if(ctx.func_call() != null) visit(ctx.func_call());	
 
-		// Recursively visits the case_statement for error checking
-		visit(ctx.case_statement());
+	// 	// Recursively visits the case_statement for error checking
+	// 	visit(ctx.case_statement());
 
-		return Type.NO_TYPE;
-	}
+	// 	return Type.NO_TYPE;
+	// }
 
-	// Visits the rule case_statement: (CASE expression COLON statement*)* (DEFAULT COLON statement*)?
-	@Override
-	public Type visitCase_statement(GoParser.Case_statementContext ctx) {
-		// Get the parent node of the rule, in this case, the switch node
-		GoParser.Switch_statementContext parent = (GoParser.Switch_statementContext) ctx.parent;
+	// // Visits the rule case_statement: (CASE expression COLON statement*)* (DEFAULT COLON statement*)?
+	// @Override
+	// public Type visitCase_statement(GoParser.Case_statementContext ctx) {
+	// 	// Get the parent node of the rule, in this case, the switch node
+	// 	GoParser.Switch_statementContext parent = (GoParser.Switch_statementContext) ctx.parent;
 		
-		// Dont think thats gonna happen, but there it is
-		if(parent == null) {
-			System.out.println("Case statement has no parent node. Exiting...");
-			System.exit(1);
-		}
+	// 	// Dont think thats gonna happen, but there it is
+	// 	if(parent == null) {
+	// 		System.out.println("Case statement has no parent node. Exiting...");
+	// 		System.exit(1);
+	// 	}
 
-		// Default type for the case expression if nothing is being evaluated
-		Type caseType = Type.BOOL_TYPE;
+	// 	// Default type for the case expression if nothing is being evaluated
+	// 	Type caseType = Type.BOOL_TYPE;
 
-		// Checks if there is a identifier or func_call to be evaluated
-		// and set the case type to the same type as the identifier
-		if(parent.id() != null) caseType = visit(parent.id());	
-		if(parent.func_call() != null) caseType = visit(parent.func_call());	
+	// 	// Checks if there is a identifier or func_call to be evaluated
+	// 	// and set the case type to the same type as the identifier
+	// 	if(parent.id() != null) caseType = visit(parent.id());	
+	// 	if(parent.func_call() != null) caseType = visit(parent.func_call());	
 
-		// Recursively visits every expression for each case to handle errors
-		for(int i = 0; i < ctx.expression().size(); i++) {
-			// Get the current expression type
-			Type expressionType = visit(ctx.expression(i));
+	// 	// Recursively visits every expression for each case to handle errors
+	// 	for(int i = 0; i < ctx.expression().size(); i++) {
+	// 		// Get the current expression type
+	// 		Type expressionType = visit(ctx.expression(i));
 			
-			// Check if the expression type matches with the case type
-			checkCase(ctx.CASE().get(i).getSymbol().getLine() , caseType, expressionType);
-		}
+	// 		// Check if the expression type matches with the case type
+	// 		checkCase(ctx.CASE().get(i).getSymbol().getLine() , caseType, expressionType);
+	// 	}
 
-		// TODO: that will probably cause some problems when trying to figure out
-		// which statement is from which case
-		// Recursively visits every statement for error checking
-		for(GoParser.StatementContext stmt : ctx.statement()) {
-			visit(stmt);
-		}
+	// 	// TODO: that will probably cause some problems when trying to figure out
+	// 	// which statement is from which case
+	// 	// Recursively visits every statement for error checking
+	// 	for(GoParser.StatementContext stmt : ctx.statement()) {
+	// 		visit(stmt);
+	// 	}
 
-		// Recursively visits rule for error checking
-		if(ctx.default_statement() != null) { 
-			visit(ctx.default_statement());
-		}
+	// 	// Recursively visits rule for error checking
+	// 	if(ctx.default_statement() != null) { 
+	// 		visit(ctx.default_statement());
+	// 	}
 
-		return Type.NO_TYPE;
-	}
+	// 	return Type.NO_TYPE;
+	// }
 	
-	//  Visits the rule func_call: IDENTIFIER L_PAREN expression_list? R_PAREN 
-	@Override
-	public Type visitFunc_call(GoParser.Func_callContext ctx) {
-		Token funcToken = ctx.IDENTIFIER().getSymbol();
+	// //  Visits the rule func_call: IDENTIFIER L_PAREN expression_list? R_PAREN 
+	// @Override
+	// public Type visitFunc_call(GoParser.Func_callContext ctx) {
+	// 	Token funcToken = ctx.IDENTIFIER().getSymbol();
 
-		// Checks if the function was previously declared
-		Type funcType = checkFunc(funcToken);
+	// 	// Checks if the function was previously declared
+	// 	Type funcType = checkFunc(funcToken);
 
-		// Checks if the function call has any parameters
-		if(ctx.expression_list() != null) {
-			// Recursively visits rule for error checking
-			visit(ctx.expression_list());
-		} else {
-			lastExpressionListSize = 0;
-		}
+	// 	// Checks if the function call has any parameters
+	// 	if(ctx.expression_list() != null) {
+	// 		// Recursively visits rule for error checking
+	// 		visit(ctx.expression_list());
+	// 	} else {
+	// 		lastExpressionListSize = 0;
+	// 	}
 
-		// Checks if the expressionListSize is the same size as what the function expects
-		checkFuncCall(funcToken);
+	// 	// Checks if the expressionListSize is the same size as what the function expects
+	// 	checkFuncCall(funcToken);
 
-		return funcType;
-	}
+	// 	return funcType;
+	// }
 
 
-	// Visits the rule expression_list: expression (COMMA expression)*
-	@Override
-	public Type visitExpression_list(GoParser.Expression_listContext ctx) {
-		lastExpressionListSize = ctx.expression().size();
+	// // Visits the rule expression_list: expression (COMMA expression)*
+	// @Override
+	// public Type visitExpression_list(GoParser.Expression_listContext ctx) {
+	// 	lastExpressionListSize = ctx.expression().size();
 
-		// Recursively visits each expression for error checking
-		for(GoParser.ExpressionContext expr : ctx.expression()) {
-			visit(expr);
-		}
+	// 	// Recursively visits each expression for error checking
+	// 	for(GoParser.ExpressionContext expr : ctx.expression()) {
+	// 		visit(expr);
+	// 	}
 
-		return Type.NO_TYPE;
-	}
+	// 	return Type.NO_TYPE;
+	// }
 
 
 	/*------------------------------------------------------------------------------*
 	 *	Visitors for expression rule
 	 *------------------------------------------------------------------------------*/
 
-	// Visits the rule expression: expression op=(STAR | DIV | MOD) expression
-	@Override
-	public Type visitStarDivMod(GoParser.StarDivModContext ctx) {
-		// Visits both operands to check their types
-		Type l = visit(ctx.expression(0));
-		Type r = visit(ctx.expression(1));
+	// // Visits the rule expression: expression op=(STAR | DIV | MOD) expression
+	// @Override
+	// public Type visitStarDivMod(GoParser.StarDivModContext ctx) {
+	// 	// Visits both operands to check their types
+	// 	Type l = visit(ctx.expression(0));
+	// 	Type r = visit(ctx.expression(1));
 
-		// Unify the types from both operands
-		Type unif = l.unifyMathOps(r);
+	// 	// Unify the types from both operands
+	// 	Type unif = l.unifyMathOps(r);
 
-		// Operation not allowed
-		if (unif == Type.NO_TYPE) {
-			typeError(ctx.op.getLine(), ctx.op.getText(), l, r);
-		}
+	// 	// Operation not allowed
+	// 	if (unif == Type.NO_TYPE) {
+	// 		typeError(ctx.op.getLine(), ctx.op.getText(), l, r);
+	// 	}
 		
-		return unif;
-	}
+	// 	return unif;
+	// }
 
 	// Visits the rule expression: expression op=(PLUS | MINUS) expression
 	@Override
-	public Type visitPlusMinus(GoParser.PlusMinusContext ctx) {
+	public AST visitPlusMinus(GoParser.PlusMinusContext ctx) {
 		// Visits both operands to check their types
-		Type l = visit(ctx.expression(0));
-		Type r = visit(ctx.expression(1));
+		AST l = visit(ctx.expression(0));
+		AST r = visit(ctx.expression(1));
 		
 		// Unify the types from both operands
-		Type unif = l.unifyMathOps(r);
+		Type lt = l.type;
+		Type rt = r.type;
+		Type unif = lt.unifyMathOps(rt);
 
 		// Operation not suported
 		if (unif == Type.NO_TYPE) {
-			typeError(ctx.op.getLine(), ctx.op.getText(), l, r);
+			typeError(ctx.op.getLine(), ctx.op.getText(), lt, rt);
 		}
 
-		return unif;
+		if (ctx.op.getType() == GoParser.PLUS) {
+			return AST.newSubtree(NodeKind.PLUS_NODE, unif, l, r);
+		} else { // MINUS
+			return AST.newSubtree(NodeKind.MINUS_NODE, unif, l, r);
+		}
 	}
 
-	// Visits the rule expression: expression op=( EQUALS | NOT_EQUALS | LESS | LESS_OR_EQUALS | GREATER | GREATER_OR_EQUALS) expression
-	@Override
-	public Type visitRelationalOperators(GoParser.RelationalOperatorsContext ctx) {
-		// Visits both operands to check their types
-		Type l = visit(ctx.expression(0));
-		Type r = visit(ctx.expression(1));
+	// // Visits the rule expression: expression op=( EQUALS | NOT_EQUALS | LESS | LESS_OR_EQUALS | GREATER | GREATER_OR_EQUALS) expression
+	// @Override
+	// public Type visitRelationalOperators(GoParser.RelationalOperatorsContext ctx) {
+	// 	// Visits both operands to check their types
+	// 	Type l = visit(ctx.expression(0));
+	// 	Type r = visit(ctx.expression(1));
 		
-		// Unify the types from both operands
-		Type unif;
-		if(ctx.op.getType() == GoParser.EQUALS || ctx.op.getType() == GoParser.NOT_EQUALS){
-			unif = l.unifyCompare(r);
-		} else {
-			unif = l.unifyCompare2(r);
-		}
+	// 	// Unify the types from both operands
+	// 	Type unif;
+	// 	if(ctx.op.getType() == GoParser.EQUALS || ctx.op.getType() == GoParser.NOT_EQUALS){
+	// 		unif = l.unifyCompare(r);
+	// 	} else {
+	// 		unif = l.unifyCompare2(r);
+	// 	}
 
-		// Operation not suported
-		if (unif == Type.NO_TYPE) {
-			typeError(ctx.op.getLine(), ctx.op.getText(), l, r);
-		}
+	// 	// Operation not suported
+	// 	if (unif == Type.NO_TYPE) {
+	// 		typeError(ctx.op.getLine(), ctx.op.getText(), l, r);
+	// 	}
 
-		return unif;
-	}
+	// 	return unif;
+	// }
 
-	// Visits the rule expression: L_PAREN expression R_PAREN 
-	@Override
-	public Type visitExpressionParen(GoParser.ExpressionParenContext ctx) {
-		return visit(ctx.expression());
-	}
+	// // Visits the rule expression: L_PAREN expression R_PAREN 
+	// @Override
+	// public Type visitExpressionParen(GoParser.ExpressionParenContext ctx) {
+	// 	return visit(ctx.expression());
+	// }
 
-	// Visits the rule expression: id
-	@Override
-	public Type visitExpressionId(GoParser.ExpressionIdContext ctx) {
-		return visit(ctx.id());
-	}
+	// // Visits the rule expression: id
+	// @Override
+	// public Type visitExpressionId(GoParser.ExpressionIdContext ctx) {
+	// 	return visit(ctx.id());
+	// }
 
-	// Visits the rule expression: func_call
-	@Override
-	public Type visitExpressionFuncCall(GoParser.ExpressionFuncCallContext ctx) {
-		return visit(ctx.func_call());
-	}
+	// // Visits the rule expression: func_call
+	// @Override
+	// public Type visitExpressionFuncCall(GoParser.ExpressionFuncCallContext ctx) {
+	// 	return visit(ctx.func_call());
+	// }
 
 	// Visits the rule expression: DECIMAL_LIT
 	@Override
-	public Type visitIntVal(GoParser.IntValContext ctx) {
-		return Type.INT_TYPE;
+	public AST visitIntVal(GoParser.IntValContext ctx) {
+		int intData = Integer.parseInt(ctx.getText());
+		return new AST(NodeKind.INT_VAL_NODE, intData, Type.INT_TYPE);
 	}
 
 	// Visits the rule expression: FLOAT_LIT
 	@Override
-	public Type visitFloatVal(GoParser.FloatValContext ctx) {
-		return Type.FLOAT32_TYPE;
+	public AST visitFloatVal(GoParser.FloatValContext ctx) {
+		float floatData = Float.parseFloat(ctx.getText());
+		return new AST(NodeKind.FLOAT32_VAL_NODE, floatData, Type.FLOAT32_TYPE);
 	}
 
-	// Visits the rule expression: INTERPRETED_STRING_LIT
-	@Override
-	public Type visitStringVal(GoParser.StringValContext ctx) {
-		// Adds the string to the string table.
-		st.add(ctx.INTERPRETED_STRING_LIT().getText());
-		return Type.STRING_TYPE;
-	}
+	// // Visits the rule expression: INTERPRETED_STRING_LIT
+	// @Override
+	// public Type visitStringVal(GoParser.StringValContext ctx) {
+	// 	// Adds the string to the string table.
+	// 	st.add(ctx.INTERPRETED_STRING_LIT().getText());
+	// 	return Type.STRING_TYPE;
+	// }
 
-	// Visits the rule expression: BOOLEAN_LIT
-	@Override
-	public Type visitBoolVal(GoParser.BoolValContext ctx) {
-		return Type.BOOL_TYPE;
-	}
+	// // Visits the rule expression: BOOLEAN_LIT
+	// @Override
+	// public Type visitBoolVal(GoParser.BoolValContext ctx) {
+	// 	return Type.BOOL_TYPE;
+	// }
 
 	/*------------------------------------------------------------------------------*
 	 *	Visitor for id rule
 	 *------------------------------------------------------------------------------*/
 
-	// Visits the rule id: IDENTIFIER (L_BRACKET expression R_BRACKET)?
-	@Override
-	public Type visitId(GoParser.IdContext ctx) {
-		Token identifierToken = ctx.IDENTIFIER().getSymbol();
+	// // Visits the rule id: IDENTIFIER (L_BRACKET expression R_BRACKET)?
+	// @Override
+	// public Type visitId(GoParser.IdContext ctx) {
+	// 	Token identifierToken = ctx.IDENTIFIER().getSymbol();
 
-		// Checks if it has an array index 
-		if(ctx.expression() != null) {
-			// Recursively visits the expression for error checking
-			Type expressionType = visit(ctx.expression());
+	// 	// Checks if it has an array index 
+	// 	if(ctx.expression() != null) {
+	// 		// Recursively visits the expression for error checking
+	// 		Type expressionType = visit(ctx.expression());
 	
-			// Checks if the index is valid
-			checkIndex(identifierToken.getLine(), expressionType);
-		}
+	// 		// Checks if the index is valid
+	// 		checkIndex(identifierToken.getLine(), expressionType);
+	// 	}
 
-		return checkVar(identifierToken);
-	}
+	// 	return checkVar(identifierToken);
+	// }
 
 }

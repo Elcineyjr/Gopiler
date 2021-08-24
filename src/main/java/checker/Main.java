@@ -43,10 +43,10 @@ public class Main {
 		checker.visit(tree);
 
 		// Saída final.
-		if (checker.hasPassed()) {
-			System.out.println("PARSE SUCCESSFUL!");
-			// checker.printTables();
-		}
+		// System.out.println("PARSE SUCCESSFUL!");
+		// checker.printTables();
+		checker.printAST();
+		
 	}
 
 }
