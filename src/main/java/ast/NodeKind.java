@@ -53,6 +53,7 @@ public enum NodeKind {
     PLUS_PLUS_NODE,
     MINUS_MINUS_NODE,
     IF_NODE,
+    ELSE_NODE,
     WHILE_NODE,
     FOR_NODE,
     SWITCH_NODE,
@@ -111,6 +112,7 @@ public enum NodeKind {
             case PLUS_PLUS_NODE:            return "++";
             case MINUS_MINUS_NODE:          return "--";
             case IF_NODE:                   return "if";
+            case ELSE_NODE:                 return "else";
             case WHILE_NODE:                return "while";
             case FOR_NODE:                  return "for";
             case SWITCH_NODE:               return "switch";

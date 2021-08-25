@@ -343,9 +343,9 @@ public class SemanticChecker extends GoParserBaseVisitor<AST> {
 			lastDeclType = expression.type;
 		}
 
-		// TODO
+		AST arrayInit = null;
 		if(ctx.array_init() != null) {
-			visit(ctx.array_init());
+			arrayInit = visit(ctx.array_init());
 
 			// Checks if the array was initialized with the correct amount of indexes
 			checkArrayInit(identifierToken.getLine(), identifierToken.getText());
@@ -353,7 +353,9 @@ public class SemanticChecker extends GoParserBaseVisitor<AST> {
 
 		// Checks if the variable was previously declared
 		AST node = newVar(identifierToken);
+
 		node.addChild(expression);
+		node.addChild(arrayInit);
 
 		return node;
 	}
@@ -362,31 +364,32 @@ public class SemanticChecker extends GoParserBaseVisitor<AST> {
 	//  *Visitor for array_declaration and array_ags rules
 	//  *------------------------------------------------------------------------------*/
 
-	// // Visits the rule array_declaration: L_BRACKET DECIMAL_LIT R_BRACKET var_types
-	// @Override
-	// public Type visitArray_declaration(GoParser.Array_declarationContext ctx) {
-	// 	// Defines the array size
-	// 	lastDeclArgsSize = Integer.parseInt(ctx.DECIMAL_LIT().getText());
+	// Visits the rule array_declaration: L_BRACKET DECIMAL_LIT R_BRACKET var_types
+	@Override
+	public AST visitArray_declaration(GoParser.Array_declarationContext ctx) {
+		// Defines the array size
+		lastDeclArgsSize = Integer.parseInt(ctx.DECIMAL_LIT().getText());
 
-	// 	// Defines lastDeclType 
-	// 	visit(ctx.var_types());
+		// Defines lastDeclType 
+		visit(ctx.var_types());
 
-	// 	return Type.NO_TYPE;
-	// }
+		return null;
+	}
 
-	// // Visits the rule array_init: array_declaration L_CURLY expression_list? R_CURLY
-	// @Override
-	// public Type visitArray_init(GoParser.Array_initContext ctx) {
-	// 	// Recursively visits the rule for error checking
-	// 	visit(ctx.array_declaration());
+	// Visits the rule array_init: array_declaration L_CURLY expression_list? R_CURLY
+	@Override
+	public AST visitArray_init(GoParser.Array_initContext ctx) {
+		// Recursively visits the rule for error checking
+		visit(ctx.array_declaration());
 
-	// 	if(ctx.expression_list() != null) {
-	// 		// Recursively visits the rule for error checking
-	// 		visit(ctx.expression_list());
-	// 	} 
+		AST expressionList = null;
+		if(ctx.expression_list() != null) {
+			// Recursively visits the rule for error checking
+			expressionList = visit(ctx.expression_list());
+		} 
 
-	// 	return Type.NO_TYPE;
-	// }
+		return expressionList;
+	}
 
 	/*------------------------------------------------------------------------------*
 	 *	Visitors for input and output
@@ -589,24 +592,26 @@ public class SemanticChecker extends GoParserBaseVisitor<AST> {
 		return node;
 	}
 
-	// // Visits the rule if_statement: IF expression statement_section (ELSE statement_section)?
-	// @Override
-	// public Type visitIf_statement(GoParser.If_statementContext ctx) {
-	// 	Type expressionType = visit(ctx.expression());
+	// Visits the rule if_statement: IF expression statement_section (ELSE statement_section)?
+	@Override
+	public AST visitIf_statement(GoParser.If_statementContext ctx) {
+		AST expression = visit(ctx.expression());
 
-	// 	// Checks expression to see if it is bool type 
-	// 	checkBoolExpr(ctx.IF().getSymbol().getLine(), "if", expressionType);
+		// Checks expression to see if it is bool type 
+		checkBoolExpr(ctx.IF().getSymbol().getLine(), "if", expression.type);
 
-	// 	// Recursively visits the statement_section from the if block for error checking
-	// 	visit(ctx.statement_section(0));
+		// Recursively visits the statement_section from the if block for error checking
+		AST ifStatements = visit(ctx.statement_section(0));
 
-	// 	// Recursively visits the statement_section from the else block for error checking
-	// 	if(ctx.ELSE() != null) {
-	// 		visit(ctx.statement_section(1));
-	// 	} 
+		// Recursively visits the statement_section from the else block for error checking
+		AST elseNode = null;
+		if(ctx.ELSE() != null) {
+			AST elseStatements = visit(ctx.statement_section(1));
+			elseNode = AST.newSubtree(NodeKind.ELSE_NODE, Type.NO_TYPE, elseStatements);
+		} 
 
-	// 	return Type.NO_TYPE;
-	// }
+		return AST.newSubtree(NodeKind.IF_NODE, Type.NO_TYPE, expression, ifStatements, elseNode);
+	}
 
 	// Visits the rule for_statement: FOR expression? statement_section
 	@Override
