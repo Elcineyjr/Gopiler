@@ -24,13 +24,14 @@ import typing.Type;
 
 public class SemanticChecker extends GoParserBaseVisitor<AST> {
 
-	private StrTable st = new StrTable(); // Tabela de strings.
-	private VarTable vt = new VarTable(); // Tabela de variáveis.
-	private FuncTable ft = new FuncTable(); // Tabela de variáveis.
+	private StrTable st = new StrTable();
+	private VarTable vt = new VarTable();
+	private FuncTable ft = new FuncTable();
 
 	Type lastDeclType; // Global variable with the last declared var type 
 	Type lastDeclFuncType; // Global variable with the last declared func type 
-	int lastDeclArgsSize; // Global variable with the last declared argsSize 
+	int lastDeclFuncArgsSize; // Global variable with the last declared FUNC argsSize 
+	int lastDeclArrayArgsSize; // Global variable with the last declared ARRAY argsSize 
 	int lastExpressionListSize;
 
 	AST root;
@@ -45,7 +46,6 @@ public class SemanticChecker extends GoParserBaseVisitor<AST> {
 		System.out.print("\n\n");
 	}
 
-	// Exibe a AST no formato DOT em stderr.
     void printAST() {
     	AST.printDot(root, vt);
     }
@@ -55,7 +55,7 @@ public class SemanticChecker extends GoParserBaseVisitor<AST> {
 	 *------------------------------------------------------------------------------*/
 
 	// Checks whether the variable was previously declared
-	AST checkVar(Token token) {
+	AST checkVar(Token token, int argIdx) {
 		String text = token.getText();
 		int line = token.getLine();
 		int idx = vt.lookupVar(text);
@@ -63,7 +63,7 @@ public class SemanticChecker extends GoParserBaseVisitor<AST> {
 			System.out.printf("SEMANTIC ERROR (%d): variable '%s' was not declared.\n", line, text);
 			System.exit(1);
 		}
-		return new AST(NodeKind.VAR_USE_NODE, idx, vt.getType(idx));
+		return new AST(NodeKind.VAR_USE_NODE, idx, argIdx, vt.getType(idx));
 	}
 
 	// Creates a new variable from token
@@ -77,7 +77,7 @@ public class SemanticChecker extends GoParserBaseVisitor<AST> {
 			);
 			System.exit(1);
 		}
-		idx = vt.addVar(text, line, lastDeclType);
+		idx = vt.addVar(text, line, lastDeclType, lastDeclArrayArgsSize);
 		return new AST(NodeKind.VAR_DECL_NODE, idx, lastDeclType);
 	}
 
@@ -108,7 +108,7 @@ public class SemanticChecker extends GoParserBaseVisitor<AST> {
 			);
 			System.exit(1);
 		}
-		idx = ft.addFunc(text, line, lastDeclFuncType, lastDeclArgsSize);
+		idx = ft.addFunc(text, line, lastDeclFuncType, lastDeclFuncArgsSize);
 		return new AST(NodeKind.FUNC_DECL_NODE, idx, lastDeclFuncType);
 	}
 
@@ -220,10 +220,10 @@ public class SemanticChecker extends GoParserBaseVisitor<AST> {
     }
     
 	private void checkArrayInit(int lineNo, String varName) {
-		if(lastDeclArgsSize != lastExpressionListSize) {
+		if(lastDeclArrayArgsSize != lastExpressionListSize) {
 			System.out.printf(
 				"SEMANTIC ERROR (%d): Array '%s' declared with size %d but initialized with %d arguments.\n",
-				lineNo, varName, lastDeclArgsSize, lastExpressionListSize
+				lineNo, varName, lastDeclArrayArgsSize, lastExpressionListSize
 			);
 			System.exit(1);
 		}
@@ -240,14 +240,6 @@ public class SemanticChecker extends GoParserBaseVisitor<AST> {
 
 		// Creates the root node for the program
 		this.root = AST.newSubtree(NodeKind.PROGRAM_NODE, Type.NO_TYPE, funcSection);
-
-		// TODO
-		// Since the import is optional we can add a new child if necessary
-		// if(ctx.import_section() != null) {
-		// 	AST importSection = visit(ctx.import_section());
-
-		// 	this.root.addChild(importSection);
-		// }
 
 		return this.root;
 	}
@@ -296,13 +288,14 @@ public class SemanticChecker extends GoParserBaseVisitor<AST> {
 			// Recursively visits the array_declaration to define the array type
 			visit(ctx.array_declaration());
 		} else {
-			boolean hasVarType = ctx.var_types() != null;
+			// Not an array
+			lastDeclArrayArgsSize = 0;
 
 			// Defines the var type based on the explicit type declaration or 
 			// the given initial expression.
 			// e.g: var x int
 			// 		var x = 10
-			if(hasVarType) {
+			if(ctx.var_types() != null) {
 				// Defines lastDeclType with explicit var type declaration
 				visit(ctx.var_types());
 			} else {
@@ -319,10 +312,10 @@ public class SemanticChecker extends GoParserBaseVisitor<AST> {
 		boolean hasAssign = ctx.ASSIGN() != null;
 		// Checks if the identifier type and expression type match
 		if(hasAssign) {
-			Type identifierType = checkVar(identifierToken).type;
+			AST identifier = checkVar(identifierToken, -1);
 			AST expression = visit(ctx.expression());
 
-			checkInitAssign(identifierToken.getLine(), identifierToken.getText(), identifierType, expression.type);
+			checkInitAssign(identifierToken.getLine(), identifierToken.getText(), identifier.type, expression.type);
 			
 			varDecl.addChild(expression);
 		}
@@ -341,6 +334,7 @@ public class SemanticChecker extends GoParserBaseVisitor<AST> {
 		if(ctx.expression() != null) {
 			expression = visit(ctx.expression());
 			lastDeclType = expression.type;
+			lastDeclArrayArgsSize = 0;
 		}
 
 		AST arrayInit = null;
@@ -368,7 +362,7 @@ public class SemanticChecker extends GoParserBaseVisitor<AST> {
 	@Override
 	public AST visitArray_declaration(GoParser.Array_declarationContext ctx) {
 		// Defines the array size
-		lastDeclArgsSize = Integer.parseInt(ctx.DECIMAL_LIT().getText());
+		lastDeclArrayArgsSize = Integer.parseInt(ctx.DECIMAL_LIT().getText());
 
 		// Defines lastDeclType 
 		visit(ctx.var_types());
@@ -436,11 +430,11 @@ public class SemanticChecker extends GoParserBaseVisitor<AST> {
 
 		AST funcArgs = null;
 		if(ctx.func_args() != null) {
-			// Defines lastDeclArgsSize and adds the args to var table
+			// Defines lastDeclFuncArgsSize and adds the args to var table
 			funcArgs = visit(ctx.func_args());
 		} else {
 			// Function has no args
-			lastDeclArgsSize = 0;
+			lastDeclFuncArgsSize = 0;
 		}
 		
 		// Checks if the function was previously declared		
@@ -459,7 +453,7 @@ public class SemanticChecker extends GoParserBaseVisitor<AST> {
 	// Visits the rule func_args: id var_types (COMMA id var_types)*
 	@Override
 	public AST visitFunc_args(GoParser.Func_argsContext ctx) {
-		lastDeclArgsSize = ctx.id().size();
+		lastDeclFuncArgsSize = ctx.id().size();
 
 		AST node = AST.newSubtree(NodeKind.FUNC_ARGS_NODE, Type.NO_TYPE);
 
@@ -469,12 +463,12 @@ public class SemanticChecker extends GoParserBaseVisitor<AST> {
 			// Defines lastDeclType
 			visit(ctx.var_types(i));
 
-			// Checks if the variable was previously declared
-			AST child = newVar(ctx.id(i).IDENTIFIER().getSymbol());
-			node.addChild(child);
-
 			// Recursively visits the rule for error checking
-			visit(ctx.id(i));
+			AST child = visit(ctx.id(i));
+
+			// // Checks if the variable was previously declared
+			// AST child = newVar(ctx.id(i).IDENTIFIER().getSymbol());
+			node.addChild(child);
 		}
 
 		return node;
@@ -521,11 +515,11 @@ public class SemanticChecker extends GoParserBaseVisitor<AST> {
 
 		AST funcArgs = null;
 		if(ctx.func_args() != null) {
-			// Defines lastDeclArgsSize
+			// Defines lastDeclFuncArgsSize
 			funcArgs = visit(ctx.func_args());
 		} else {
 			// Function has no args
-			lastDeclArgsSize = 0;
+			lastDeclFuncArgsSize = 0;
 		}
 		
 		// Recursively visits rule for error checking
@@ -534,7 +528,7 @@ public class SemanticChecker extends GoParserBaseVisitor<AST> {
 		Token mainToken = ctx.MAIN().getSymbol();
 
 		// Adds the main function into the functions table
-		int idx = ft.addFunc(mainToken.getText(), mainToken.getLine(), lastDeclFuncType, lastDeclArgsSize);		 
+		int idx = ft.addFunc(mainToken.getText(), mainToken.getLine(), lastDeclFuncType, lastDeclFuncArgsSize);		 
 
 		// Creates the node for the main function
 		AST mainFunc = new AST(NodeKind.FUNC_MAIN_NODE, idx, lastDeclFuncType);
@@ -946,16 +940,39 @@ public class SemanticChecker extends GoParserBaseVisitor<AST> {
 	public AST visitId(GoParser.IdContext ctx) {
 		Token identifierToken = ctx.IDENTIFIER().getSymbol();
 
+		int arrIdx = -1;
+		AST expression = null;
 		// Checks if it has an array index 
 		if(ctx.expression() != null) {
 			// Recursively visits the expression for error checking
-			AST expression = visit(ctx.expression());
-	
+			expression = visit(ctx.expression());
+			
 			// Checks if the index is valid
 			checkIndex(identifierToken.getLine(), expression.type);
+			
+			arrIdx = expression.intData;
+			
+			// GAMBIARRA 🤮
+			// if the parent is the func_args rule, creates the new var
+			if(ctx.parent instanceof GoParser.Func_argsContext) {
+				lastDeclArrayArgsSize = expression.intData;
+				return newVar(identifierToken);
+			}
+		}
+		
+		// GAMBIARRA 🤮
+		// if the parent is the func_args rule, creates the new var
+		if(ctx.parent instanceof GoParser.Func_argsContext) {
+			lastDeclArrayArgsSize = 0;
+			return newVar(identifierToken);
 		}
 
-		return checkVar(identifierToken);
+		// Checks if the variable was previously declared
+		AST node  = checkVar(identifierToken, arrIdx);
+		node.addChild(expression);
+
+		return node;
+
 	}
 
 }

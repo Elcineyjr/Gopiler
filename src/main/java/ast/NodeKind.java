@@ -2,47 +2,32 @@ package ast;
 
 public enum NodeKind {
 
-    /*---------------------------------*
-	 *	Value nodes
-	 *---------------------------------*/
-
+    // Value nodes
     BOOL_VAL_NODE,
     INT_VAL_NODE,
     FLOAT32_VAL_NODE,
     STRING_VAL_NODE,
 
-    /*---------------------------------*
-	 *	I/O nodes
-	 *---------------------------------*/
-
+	// I/O nodes
     INPUT_NODE,
     OUTPUT_NODE,
 
-    /*---------------------------------*
-	 *	Relational nodes
-	 *---------------------------------*/
-
+    // Relational nodes
     EQUALS_NODE,
     NOT_EQUALS_NODE,
     LESS_NODE,
     LESS_OR_EQUALS_NODE,
     GREATER_NODE,
     GREATER_OR_EQUALS_NODE,
-
-    /*---------------------------------*
-	 *	Arithmetics nodes
-	 *---------------------------------*/
-
+    
+    // Arithmetics nodes
     STAR_NODE,
     DIV_NODE,
     MOD_NODE,
     PLUS_NODE,
     MINUS_NODE,
-
-    /*---------------------------------*
-	 *	Statement nodes
-	 *---------------------------------*/
     
+    // Statement nodes
     STATEMENT_SECTION_NODE,
     RETURN_NODE,
     VAR_DECL_NODE,
@@ -60,21 +45,16 @@ public enum NodeKind {
     CASE_NODE,
     DEFAULT_NODE,
     FUNC_CALL_NODE,
-
-    /*---------------------------------*
-	 *	Function nodes
-	 *---------------------------------*/
-    
+	 
+    // Function nodes
     FUNC_MAIN_NODE,
     FUNC_DECL_NODE,
     FUNC_ARGS_NODE,
     EXPRESSION_LIST_NODE,
     
-    // ----------------------------------------------------
-
+    // ------------------------
     PROGRAM_NODE,
     FUNC_LIST_NODE,
-    VAR_LIST_NODE, // TODO: is it really necessary?
     VAR_USE_NODE;
 
     
@@ -129,7 +109,6 @@ public enum NodeKind {
 
             case PROGRAM_NODE:      return "program";
             case FUNC_LIST_NODE:    return "func_list";
-            case VAR_LIST_NODE:     return "var_list"; // TODO: is it really necessary?
             case VAR_USE_NODE:      return "var_use";
             
             default: return "";

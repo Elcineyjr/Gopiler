@@ -20,8 +20,8 @@ public final class VarTable {
 		return -1;
 	}
 
-	public int addVar(String s, int line, Type type) {
-		Entry entry = new Entry(s, line, type);
+	public int addVar(String s, int line, Type type, int argSize) {
+		Entry entry = new Entry(s, line, type, argSize);
 		int idxAdded = table.size();
 		table.add(entry);
 		return idxAdded;
@@ -39,6 +39,10 @@ public final class VarTable {
 		return table.get(i).type;
 	}
 
+	public int getArgSize(int i) {
+		return table.get(i).argSize;
+	}
+
 	public String toString() {
 		StringBuilder sb = new StringBuilder();
 		Formatter f = new Formatter(sb);
@@ -54,11 +58,14 @@ public final class VarTable {
 		String name;
 		int line;
 		Type type;
+		int argSize;
 
-		Entry(String name, int line, Type type) {
+
+		Entry(String name, int line, Type type, int argSize) {
 			this.name = name;
 			this.line = line;
 			this.type = type;
+			this.argSize = argSize;
 		}
 	}
 }

@@ -11,24 +11,30 @@ import typing.Type;
 public class AST {
 	public  final NodeKind kind;
 	public  final int intData;
+	public  final int arrIdx;
 	public  final float floatData;
 	public  final Type type;
 	private final List<AST> children;
 
-	private AST(NodeKind kind, int intData, float floatData, Type type) {
+	private AST(NodeKind kind, int intData, int arrIdx, float floatData, Type type) {
 		this.kind = kind;
 		this.intData = intData;
+		this.arrIdx = arrIdx;
 		this.floatData = floatData;
 		this.type = type;
 		this.children = new ArrayList<AST>();
 	}
 
 	public AST(NodeKind kind, int intData, Type type) {
-		this(kind, intData, 0.0f, type);
+		this(kind, intData, -1, 0.0f, type);
+	}
+
+	public AST(NodeKind kind, int intData, int arrIdx, Type type) {
+		this(kind, intData, arrIdx, 0.0f, type);
 	}
 
 	public AST(NodeKind kind, float floatData, Type type) {
-		this(kind, 0, floatData, type);
+		this(kind, 0, -1, floatData, type);
 	}
 
 	// Add child to node
@@ -66,13 +72,9 @@ public class AST {
 
 	// --------------------------------- Testing -------------------------------
 	
-	// Variáveis internas usadas para geração da saída em DOT.
-	// Estáticas porque só precisamos de uma instância.
 	private static int nr;
 	private static VarTable vt;
 
-	// Imprime recursivamente a codificação em DOT da subárvore começando no nó atual.
-	// Usa stderr como saída para facilitar o redirecionamento, mas isso é só um hack.
 	private int printNodeDot() {
 		int myNr = nr++;
 
@@ -84,9 +86,12 @@ public class AST {
 			|| this.kind == NodeKind.VAR_USE_NODE 
 			|| this.kind == NodeKind.DECLARE_ASSIGN_NODE
 			) {
+			if(vt.getArgSize(this.intData) > 0) {
+				System.err.printf("[%d] ", vt.getArgSize(this.intData));
+			}
 	    	System.err.printf("%s@", vt.getName(this.intData));
 	    } else {
-	    	System.err.printf("%s", this.kind.toString());
+			System.err.printf("%s", this.kind.toString());
 	    }
 	    if (NodeKind.hasData(this.kind)) {
 	        if (this.kind == NodeKind.FLOAT32_VAL_NODE) {
@@ -107,7 +112,6 @@ public class AST {
 	    return myNr;
 	}
 
-	// Imprime a árvore toda em stderr.
 	public static void printDot(AST tree, VarTable table) {
 	    nr = 0;
 	    vt = table;
