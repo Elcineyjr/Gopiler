@@ -1,7 +1,9 @@
 package main
 
+import "fmt"
+
 func calculo_imc(altura float32, peso float32) float32 {
-	return peso/(altura*altura)
+	return peso / (altura * altura)
 }
 
 func faixa_etaria(idade int) string {
@@ -32,7 +34,7 @@ func classificacao_imc(altura float32, peso float32, idade int) string {
 		default:
 			classificacao = "Obesidade de Classe 3"
 		}
-		 
+
 	case "idoso":
 		switch {
 		case imc <= 22:
@@ -49,4 +51,6 @@ func classificacao_imc(altura float32, peso float32, idade int) string {
 
 func main() {
 	var resultado string = classificacao_imc(1.60, 57, 22)
+
+	fmt.Println(resultado)
 }
