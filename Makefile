@@ -51,4 +51,4 @@ run:
 
 
 clean:
-	@rm -rf $(GEN_PATH) $(BIN_PATH) $(SOURCE_PATH)/.antlr target/
+	@rm -rf $(GEN_PATH) $(BIN_PATH) $(SOURCE_PATH)/.antlr target/ out/ *.dot *.pdf

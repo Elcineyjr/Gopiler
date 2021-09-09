@@ -55,7 +55,7 @@ public class SemanticChecker extends GoParserBaseVisitor<AST> {
 	 *------------------------------------------------------------------------------*/
 
 	// Checks whether the variable was previously declared
-	AST checkVar(Token token, int argIdx) {
+	AST checkVar(Token token) {
 		String text = token.getText();
 		int line = token.getLine();
 		int idx = vt.lookupVar(text);
@@ -63,7 +63,7 @@ public class SemanticChecker extends GoParserBaseVisitor<AST> {
 			System.out.printf("SEMANTIC ERROR (%d): variable '%s' was not declared.\n", line, text);
 			System.exit(1);
 		}
-		return new AST(NodeKind.VAR_USE_NODE, idx, argIdx, vt.getType(idx));
+		return new AST(NodeKind.VAR_USE_NODE, idx, vt.getType(idx));
 	}
 
 	// Creates a new variable from token
@@ -312,7 +312,7 @@ public class SemanticChecker extends GoParserBaseVisitor<AST> {
 		boolean hasAssign = ctx.ASSIGN() != null;
 		// Checks if the identifier type and expression type match
 		if(hasAssign) {
-			AST identifier = checkVar(identifierToken, -1);
+			AST identifier = checkVar(identifierToken);
 			AST expression = visit(ctx.expression());
 
 			checkInitAssign(identifierToken.getLine(), identifierToken.getText(), identifier.type, expression.type);
@@ -940,7 +940,6 @@ public class SemanticChecker extends GoParserBaseVisitor<AST> {
 	public AST visitId(GoParser.IdContext ctx) {
 		Token identifierToken = ctx.IDENTIFIER().getSymbol();
 
-		int arrIdx = -1;
 		AST expression = null;
 		// Checks if it has an array index 
 		if(ctx.expression() != null) {
@@ -949,18 +948,14 @@ public class SemanticChecker extends GoParserBaseVisitor<AST> {
 			
 			// Checks if the index is valid
 			checkIndex(identifierToken.getLine(), expression.type);
-			
-			arrIdx = expression.intData;
-			
-			// GAMBIARRA 🤮
+
 			// if the parent is the func_args rule, creates the new var
 			if(ctx.parent instanceof GoParser.Func_argsContext) {
 				lastDeclArrayArgsSize = expression.intData;
 				return newVar(identifierToken);
 			}
 		}
-		
-		// GAMBIARRA 🤮
+
 		// if the parent is the func_args rule, creates the new var
 		if(ctx.parent instanceof GoParser.Func_argsContext) {
 			lastDeclArrayArgsSize = 0;
@@ -968,7 +963,7 @@ public class SemanticChecker extends GoParserBaseVisitor<AST> {
 		}
 
 		// Checks if the variable was previously declared
-		AST node  = checkVar(identifierToken, arrIdx);
+		AST node  = checkVar(identifierToken);
 		node.addChild(expression);
 
 		return node;

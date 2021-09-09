@@ -11,30 +11,24 @@ import typing.Type;
 public class AST {
 	public  final NodeKind kind;
 	public  final int intData;
-	public  final int arrIdx;
 	public  final float floatData;
 	public  final Type type;
 	private final List<AST> children;
 
-	private AST(NodeKind kind, int intData, int arrIdx, float floatData, Type type) {
+	private AST(NodeKind kind, int intData, float floatData, Type type) {
 		this.kind = kind;
 		this.intData = intData;
-		this.arrIdx = arrIdx;
 		this.floatData = floatData;
 		this.type = type;
 		this.children = new ArrayList<AST>();
 	}
 
 	public AST(NodeKind kind, int intData, Type type) {
-		this(kind, intData, -1, 0.0f, type);
-	}
-
-	public AST(NodeKind kind, int intData, int arrIdx, Type type) {
-		this(kind, intData, arrIdx, 0.0f, type);
+		this(kind, intData, 0.0f, type);
 	}
 
 	public AST(NodeKind kind, float floatData, Type type) {
-		this(kind, 0, -1, floatData, type);
+		this(kind, 0, floatData, type);
 	}
 
 	// Add child to node
