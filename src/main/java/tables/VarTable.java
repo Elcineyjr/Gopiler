@@ -11,17 +11,17 @@ public final class VarTable {
 
 	private List<Entry> table = new ArrayList<Entry>();
 
-	public int lookupVar(String s) {
+	public int lookupVar(String name, String scope) {
 		for (int i = 0; i < table.size(); i++) {
-			if (table.get(i).name.equals(s)) {
+			if (table.get(i).name.equals(name) && table.get(i).scope.equals(scope)) {
 				return i;
 			}
 		}
 		return -1;
 	}
 
-	public int addVar(String s, int line, Type type, int argSize) {
-		Entry entry = new Entry(s, line, type, argSize);
+	public int addVar(String name, String scope, int line, Type type, int argSize) {
+		Entry entry = new Entry(name, scope, line, type, argSize);
 		int idxAdded = table.size();
 		table.add(entry);
 		return idxAdded;
@@ -29,6 +29,10 @@ public final class VarTable {
 
 	public String getName(int i) {
 		return table.get(i).name;
+	}
+
+	public String getScope(int i) {
+		return table.get(i).scope;
 	}
 
 	public int getLine(int i) {
@@ -48,7 +52,9 @@ public final class VarTable {
 		Formatter f = new Formatter(sb);
 		f.format("Variables table:\n");
 		for (int i = 0; i < table.size(); i++) {
-			f.format("Entry %d -- name: %s, line: %d, type: %s\n", i, getName(i), getLine(i), getType(i).toString());
+			f.format("Entry %d -- name: %s, scope: %s, line: %d, type: %s\n",
+				i, getName(i), getScope(i), getLine(i), getType(i).toString()
+			);
 		}
 		f.close();
 		return sb.toString();
@@ -56,13 +62,15 @@ public final class VarTable {
 
 	private final class Entry {
 		String name;
+		String scope;
 		int line;
 		Type type;
-		int argSize;
+		int argSize;		
 
 
-		Entry(String name, int line, Type type, int argSize) {
+		Entry(String name, String scope, int line, Type type, int argSize) {
 			this.name = name;
+			this.scope = scope;
 			this.line = line;
 			this.type = type;
 			this.argSize = argSize;

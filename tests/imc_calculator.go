@@ -37,9 +37,9 @@ func classificacao_imc(altura float32, peso float32, idade int) string {
 
 	case "idoso":
 		switch {
-		case imc <= 22:
+		case imc <= 22.0:
 			classificacao = "Baixo peso"
-		case imc < 27:
+		case imc < 27.0:
 			classificacao = "Adequado ou eutrófico"
 		default:
 			classificacao = "Sobrepeso"
