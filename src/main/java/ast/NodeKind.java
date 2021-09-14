@@ -68,8 +68,8 @@ public enum NodeKind {
             case STRING_VAL_NODE:
 			    return "";
 
-            case INPUT_NODE:    return "input";
-            case OUTPUT_NODE:   return "output";
+            case INPUT_NODE:                return "input";
+            case OUTPUT_NODE:               return "output";
 
             case EQUALS_NODE:               return "==";
             case NOT_EQUALS_NODE:           return "!=";
@@ -78,11 +78,11 @@ public enum NodeKind {
             case GREATER_NODE:              return ">";
             case GREATER_OR_EQUALS_NODE:    return ">=";
 
-            case STAR_NODE:     return "*";
-            case DIV_NODE:      return "/";
-            case MOD_NODE:      return "%";
-            case PLUS_NODE:     return "+";
-            case MINUS_NODE:    return "-";
+            case STAR_NODE:                 return "*";
+            case DIV_NODE:                  return "/";
+            case MOD_NODE:                  return "%";
+            case PLUS_NODE:                 return "+";
+            case MINUS_NODE:                return "-";
 
             case VAR_DECL_NODE:             return "var_decl";            
             case DECLARE_ASSIGN_NODE:       return ":=";
@@ -102,14 +102,14 @@ public enum NodeKind {
             case STATEMENT_SECTION_NODE:    return "statement_sect";
             case RETURN_NODE:               return "return";
             
-            case FUNC_MAIN_NODE:        return "func_main";
-            case FUNC_DECL_NODE:        return "func_decl";
-            case FUNC_ARGS_NODE:        return "func_args";
-            case EXPRESSION_LIST_NODE:  return "expression_list";
+            case FUNC_MAIN_NODE:            return "func_main";
+            case FUNC_DECL_NODE:            return "func_decl";
+            case FUNC_ARGS_NODE:            return "func_args";
+            case EXPRESSION_LIST_NODE:      return "expression_list";
 
-            case PROGRAM_NODE:      return "program";
-            case FUNC_LIST_NODE:    return "func_list";
-            case VAR_USE_NODE:      return "var_use";
+            case PROGRAM_NODE:              return "program";
+            case FUNC_LIST_NODE:            return "func_list";
+            case VAR_USE_NODE:              return "var_use";
             
             default: return "";
     	}
