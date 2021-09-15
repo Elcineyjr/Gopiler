@@ -46,6 +46,11 @@ public class AST {
 		return null;
 	}
 
+	// Get children list size
+	public int getChildCount() {
+		return this.children.size();
+	}
+
 	// Add all children to node
 	public static AST newSubtree(NodeKind kind, Type type, AST... children) {
 		AST node = new AST(kind, 0, type);

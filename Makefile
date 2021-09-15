@@ -39,8 +39,7 @@ javac:
 	$(JAVAC) $(CLASS_PATH_OPTION) -d $(BIN_PATH) $(SOURCE_PATH)/*/*.java
 
 run:
-	$(JAVA) $(CLASS_PATH_OPTION):$(BIN_PATH) checker/Main $(FILE) 2> ast.dot
-	dot -Tpdf ast.dot -o ast.pdf
+	$(JAVA) $(CLASS_PATH_OPTION):$(BIN_PATH) checker/Main $(FILE)
 
 # runall:
 # 	@echo "Scanning $(IN) folder for files..."
