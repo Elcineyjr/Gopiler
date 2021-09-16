@@ -54,7 +54,7 @@ input:
 ;
 
 output:
-  OUTPUT L_PAREN expression_list? R_PAREN
+  OUTPUT L_PAREN expression_list R_PAREN
 ;
 
 func_args:

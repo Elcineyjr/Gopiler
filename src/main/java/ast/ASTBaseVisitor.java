@@ -105,8 +105,8 @@ public abstract class ASTBaseVisitor<T> {
 	protected abstract T visitFuncMain(AST node);
 	protected abstract T visitFuncDecl(AST node);
 	protected abstract T visitFuncArgs(AST node);
+	
 	protected abstract T visitExpressionList(AST node);
-
 	protected abstract T visitProgram(AST node);
 	protected abstract T visitFuncList(AST node);
 	protected abstract T visitVarUse(AST node);

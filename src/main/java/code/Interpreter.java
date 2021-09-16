@@ -27,6 +27,15 @@ public class Interpreter extends ASTBaseVisitor<Void> {
 		this.in = new Scanner(System.in);
 	}
 
+	// Helper method that visits every child from a given node
+	// to avoid code repetition
+	void visitsEveryChild(AST node) {
+		for (AST child : node.getChildren()) {
+			visit(child);
+		}
+	}
+
+
 	/*------------------------------------------------------------------------------*
 	 *	Var values
 	 *------------------------------------------------------------------------------*/
@@ -60,7 +69,7 @@ public class Interpreter extends ASTBaseVisitor<Void> {
 	}
 
 	/*------------------------------------------------------------------------------*
-	 *	Input / Output
+	 *	Input
 	 *------------------------------------------------------------------------------*/
 
 	@Override
@@ -70,12 +79,12 @@ public class Interpreter extends ASTBaseVisitor<Void> {
 
 		switch(varType) {
 			case INT_TYPE:  		readInt(varIdx);    	break;
-	        case FLOAT32_TYPE: 		readReal(varIdx);   	break;
+	        case FLOAT32_TYPE: 		readFloat32(varIdx);   	break;
 			case BOOL_TYPE: 		readBool(varIdx);   	break;
 			case STRING_TYPE:  		readString(varIdx); 	break;
 			case NO_TYPE:
 		    default:
-	            System.err.printf("Invalid type: %s!\n", varType.toString());
+	            System.err.printf("Invalid input type: %s!\n", varType.toString());
 	            System.exit(1);
 		}
 		return null;
@@ -88,8 +97,8 @@ public class Interpreter extends ASTBaseVisitor<Void> {
 		return null; 
 	}
 
-	private Void readReal(int varIdx) {
-		System.out.printf("read (real): ");
+	private Void readFloat32(int varIdx) {
+		System.out.printf("read (float32): ");
 		float value = in.nextFloat();
 		memory.storeFloat(varIdx, value);
 		return null;
@@ -107,15 +116,72 @@ public class Interpreter extends ASTBaseVisitor<Void> {
 
 	private Void readString(int varIdx) {
 		System.out.printf("read (str): ");
+
+		// Changes the default delimiter to read senteces with spaces
+		// then resets it
+		in.useDelimiter("\n");
 		String s = in.next();
+		in.reset();
+
 		int strIdx = st.addString(s);
 		memory.storeInt(varIdx, strIdx);
 		return null;
 	}
 
+	/*------------------------------------------------------------------------------*
+	 *	Output
+	 *------------------------------------------------------------------------------*/
+
 	@Override
 	protected Void visitOutput(AST node) {
-		return null; 
+		// Get the expression list node
+		AST expressionList = node.getChild(0);
+
+		// Iterates over the expression list's children to print them
+		for (AST expression : expressionList.getChildren()) {
+			visit(expression);
+			
+			switch(expression.type) {
+				case INT_TYPE:  	writeInt();			break;
+				case FLOAT32_TYPE: 	writeFloat32();		break;
+				case BOOL_TYPE: 	writeBool();   		break;
+				case STRING_TYPE:  	writeString();		break;
+				case NO_TYPE:
+				default:
+					System.err.printf("Invalid output type: %s!\n", expression.type.toString());
+					System.exit(1);
+			}
+		}
+
+		return null;
+	}
+
+	private Void writeInt() {
+		System.out.println(stack.popInt());
+		return null;
+	}
+
+	private Void writeFloat32() {
+		System.out.println(stack.popFloat());
+		return null;
+	}
+
+	private Void writeBool() {
+		if (stack.popInt() == 0) {
+			System.out.println("false");
+		} else {
+			System.out.println("true");
+		}
+		return null;
+	}
+
+	private Void writeString() {
+		int stringIdx = stack.popInt();
+		String originalString = st.get(stringIdx);
+		// String unescapedStr = unescapeStr(originalStr);
+		// System.out.print(unescapedStr);
+		System.out.println(originalString);
+		return null;
 	}
 
 	/*------------------------------------------------------------------------------*
@@ -188,11 +254,7 @@ public class Interpreter extends ASTBaseVisitor<Void> {
 
 	@Override
 	protected Void visitStatementSection(AST node) {
-		// Visits all children from statement section
-		for (int i = 0; i < node.getChildCount(); i++) {
-			visit(node.getChild(i));
-		}
-
+		visitsEveryChild(node);
 		return null; 
 	}
 
@@ -255,6 +317,7 @@ public class Interpreter extends ASTBaseVisitor<Void> {
 	protected Void visitFor(AST node) {
 		return null; 
 	}
+	
 	@Override
 	protected Void visitSwitch(AST node) {
 		return null; 
@@ -275,6 +338,10 @@ public class Interpreter extends ASTBaseVisitor<Void> {
 		return null; 
 	}
 
+	/*------------------------------------------------------------------------------*
+	 *	Functions
+	 *------------------------------------------------------------------------------*/
+
 	@Override
 	protected Void visitFuncMain(AST node) {
 		// Visits the main function's statement section
@@ -285,19 +352,23 @@ public class Interpreter extends ASTBaseVisitor<Void> {
 
 	@Override
 	protected Void visitFuncDecl(AST node) {
-		// Visits the function's statement section
-		visit(node.getChild(0));
-
+		visitsEveryChild(node);
 		return null; 
 	}
 
 	@Override
 	protected Void visitFuncArgs(AST node) {
+		visitsEveryChild(node);
 		return null; 
 	}
 
+	/*------------------------------------------------------------------------------*
+	 *	Others
+	 *------------------------------------------------------------------------------*/
+
 	@Override
 	protected Void visitExpressionList(AST node) {
+		visitsEveryChild(node);
 		return null; 
 	}
 
@@ -306,27 +377,26 @@ public class Interpreter extends ASTBaseVisitor<Void> {
 		// Visits the function list node
 		visit(node.getChild(0));
 
+		// End of program, no need to read from stdin anymore
+		in.close();
+
 		return null; 
 	}
 
 	@Override
 	protected Void visitFuncList(AST node) {
-		int funcListSize = node.getChildCount() - 1;
-
-		// Visits all func declaration nodes
-		for (int i = 0; i < funcListSize; i++) {
-			visit(node.getChild(i));
-		}
-
-		// Not necessary to keep it separated but for explicity sake
-		// Visits the main function declarion
-		visit(node.getChild(funcListSize));
-
+		visitsEveryChild(node);
 		return null; 
 	}
 
 	@Override
 	protected Void visitVarUse(AST node) {
+		int varIdx = node.intData;
+		if (node.type == Type.FLOAT32_TYPE) {
+			stack.pushFloat(memory.loadFloat(varIdx));
+		} else {
+			stack.pushInt(memory.loadInt(varIdx));
+		}
 		return null; 
 	}
 

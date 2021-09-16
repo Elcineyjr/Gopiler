@@ -40,15 +40,15 @@ public class AST {
 
 	// Get child at given index
 	public AST getChild(int idx) {
-		if(idx >= 0 && idx <= this.children.size()) {
+		if(idx >= 0 && idx < this.children.size()) {
 			return this.children.get(idx);
 		}
 		return null;
 	}
 
-	// Get children list size
-	public int getChildCount() {
-		return this.children.size();
+	// Get the node children
+	public List<AST> getChildren() {
+		return this.children;
 	}
 
 	// Add all children to node
