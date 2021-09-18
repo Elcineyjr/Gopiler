@@ -188,33 +188,140 @@ public class Interpreter extends ASTBaseVisitor<Void> {
 	 *	Relational operations
 	 *------------------------------------------------------------------------------*/
 
+	private void execRelationalComparison(Type t, String op) {
+		// Required to initialize, but the if clauses will overwrite the value
+		boolean result = false;
+
+		// Compares int and boolean (represented as int) values 
+		if(t == Type.INT_TYPE || t == Type.BOOL_TYPE) {
+			int r = stack.popInt();
+			int l = stack.popInt();
+
+			// Some of these operations are not valid for BOOL_TYPE, 
+			// but the semantic checker handles it
+			switch (op) {
+				case "==":		result = l == r;
+				case "!=":		result = l != r;
+				case "<":		result = l < r;
+				case "<=":		result = l <= r;
+				case ">":		result = l > r;
+				case ">=":		result = l >= r;
+			}
+		}
+
+		// Compares strings
+		if(t == Type.STRING_TYPE) {
+			String rString = st.get(stack.popInt());
+			String lString = st.get(stack.popInt());
+
+			switch (op) {
+				case "==":		result = lString.compareTo(rString) == 0;
+				case "!=":		result = lString.compareTo(rString) != 0;
+				case "<":		result = lString.compareTo(rString) < 0;
+				case "<=":		result = lString.compareTo(rString) <= 0;
+				case ">":		result = lString.compareTo(rString) > 0;
+				case ">=":		result = lString.compareTo(rString) >= 0;
+			}
+		}
+
+		// Compares float values
+		if(t == Type.FLOAT32_TYPE) {
+			float r = stack.popFloat();
+			float l = stack.popFloat();
+
+			switch (op) {
+				case "==":		result = l == r;
+				case "!=":		result = l != r;
+				case "<":		result = l < r;
+				case "<=":		result = l <= r;
+				case ">":		result = l > r;
+				case ">=":		result = l >= r;
+			}
+		}
+
+		if (result) {
+			stack.pushInt(1); // true
+		} else {
+			stack.pushInt(0); // false
+		}
+
+	}
+
 	@Override
 	protected Void visitEquals(AST node) {
+		AST lNode = node.getChild(0);
+		AST rNode = node.getChild(1);
+
+		visit(lNode);
+		visit(rNode);
+
+		execRelationalComparison(lNode.type, "==");
+
 		return null; 
 	}
 
 	@Override
 	protected Void visitNotEquals(AST node) {
-		return null; 
+		AST lNode = node.getChild(0);
+		AST rNode = node.getChild(1);
+
+		visit(lNode);
+		visit(rNode);
+
+		execRelationalComparison(lNode.type, "!=");
+
+		return null;
 	}
 
 	@Override
 	protected Void visitLess(AST node) {
-		return null; 
+		AST lNode = node.getChild(0);
+		AST rNode = node.getChild(1);
+
+		visit(lNode);
+		visit(rNode);
+
+		execRelationalComparison(lNode.type, "<");
+
+		return null;
 	}
 
 	@Override
 	protected Void visitLessOrEquals(AST node) {
+		AST lNode = node.getChild(0);
+		AST rNode = node.getChild(1);
+
+		visit(lNode);
+		visit(rNode);
+
+		execRelationalComparison(lNode.type, "<=");
+
 		return null; 
 	}
 
 	@Override
 	protected Void visitGreater(AST node) {
-		return null; 
+		AST lNode = node.getChild(0);
+		AST rNode = node.getChild(1);
+
+		visit(lNode);
+		visit(rNode);
+
+		execRelationalComparison(lNode.type, ">");
+
+		return null;  
 	}
 
 	@Override
 	protected Void visitGreaterOrEquals(AST node) {
+		AST lNode = node.getChild(0);
+		AST rNode = node.getChild(1);
+
+		visit(lNode);
+		visit(rNode);
+
+		execRelationalComparison(lNode.type, ">=");
+
 		return null; 
 	}
 
