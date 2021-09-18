@@ -178,9 +178,7 @@ public class Interpreter extends ASTBaseVisitor<Void> {
 	private Void writeString() {
 		int stringIdx = stack.popInt();
 		String originalString = st.get(stringIdx);
-		// String unescapedStr = unescapeStr(originalStr);
-		// System.out.print(unescapedStr);
-		System.out.println(originalString);
+		System.out.println(originalString.replace("\"", ""));
 		return null;
 	}
 
@@ -188,11 +186,12 @@ public class Interpreter extends ASTBaseVisitor<Void> {
 	 *	Relational operations
 	 *------------------------------------------------------------------------------*/
 
-	private void execRelationalComparison(Type t, String op) {
+	//  Helper method to execute the '==', '!=', '<', '<=', '>', '>=' comparison operations
+	private void execComparison(Type t, String op) {
 		// Required to initialize, but the if clauses will overwrite the value
 		boolean result = false;
 
-		// Compares int and boolean (represented as int) values 
+		// Compares INT and BOOL (represented as int) values 
 		if(t == Type.INT_TYPE || t == Type.BOOL_TYPE) {
 			int r = stack.popInt();
 			int l = stack.popInt();
@@ -200,12 +199,12 @@ public class Interpreter extends ASTBaseVisitor<Void> {
 			// Some of these operations are not valid for BOOL_TYPE, 
 			// but the semantic checker handles it
 			switch (op) {
-				case "==":		result = l == r;
-				case "!=":		result = l != r;
-				case "<":		result = l < r;
-				case "<=":		result = l <= r;
-				case ">":		result = l > r;
-				case ">=":		result = l >= r;
+				case "==":		result = l == r; 	break;
+				case "!=":		result = l != r;	break;
+				case "<":		result = l < r;		break;
+				case "<=":		result = l <= r;	break;
+				case ">":		result = l > r;		break;
+				case ">=":		result = l >= r;	break;
 			}
 		}
 
@@ -215,30 +214,31 @@ public class Interpreter extends ASTBaseVisitor<Void> {
 			String lString = st.get(stack.popInt());
 
 			switch (op) {
-				case "==":		result = lString.compareTo(rString) == 0;
-				case "!=":		result = lString.compareTo(rString) != 0;
-				case "<":		result = lString.compareTo(rString) < 0;
-				case "<=":		result = lString.compareTo(rString) <= 0;
-				case ">":		result = lString.compareTo(rString) > 0;
-				case ">=":		result = lString.compareTo(rString) >= 0;
+				case "==":		result = lString.compareTo(rString) == 0;		break;
+				case "!=":		result = lString.compareTo(rString) != 0;		break;
+				case "<":		result = lString.compareTo(rString) < 0;		break;
+				case "<=":		result = lString.compareTo(rString) <= 0;		break;
+				case ">":		result = lString.compareTo(rString) > 0;		break;
+				case ">=":		result = lString.compareTo(rString) >= 0;		break;
 			}
 		}
 
-		// Compares float values
+		// Compares FLOAT32 values
 		if(t == Type.FLOAT32_TYPE) {
 			float r = stack.popFloat();
 			float l = stack.popFloat();
 
 			switch (op) {
-				case "==":		result = l == r;
-				case "!=":		result = l != r;
-				case "<":		result = l < r;
-				case "<=":		result = l <= r;
-				case ">":		result = l > r;
-				case ">=":		result = l >= r;
+				case "==":		result = l == r;	break;
+				case "!=":		result = l != r;	break;
+				case "<":		result = l < r;		break;
+				case "<=":		result = l <= r;	break;
+				case ">":		result = l > r;		break;
+				case ">=":		result = l >= r;	break;
 			}
 		}
 
+		// Pushes the result to the stack
 		if (result) {
 			stack.pushInt(1); // true
 		} else {
@@ -255,7 +255,7 @@ public class Interpreter extends ASTBaseVisitor<Void> {
 		visit(lNode);
 		visit(rNode);
 
-		execRelationalComparison(lNode.type, "==");
+		execComparison(lNode.type, "==");
 
 		return null; 
 	}
@@ -268,7 +268,7 @@ public class Interpreter extends ASTBaseVisitor<Void> {
 		visit(lNode);
 		visit(rNode);
 
-		execRelationalComparison(lNode.type, "!=");
+		execComparison(lNode.type, "!=");
 
 		return null;
 	}
@@ -281,7 +281,7 @@ public class Interpreter extends ASTBaseVisitor<Void> {
 		visit(lNode);
 		visit(rNode);
 
-		execRelationalComparison(lNode.type, "<");
+		execComparison(lNode.type, "<");
 
 		return null;
 	}
@@ -294,7 +294,7 @@ public class Interpreter extends ASTBaseVisitor<Void> {
 		visit(lNode);
 		visit(rNode);
 
-		execRelationalComparison(lNode.type, "<=");
+		execComparison(lNode.type, "<=");
 
 		return null; 
 	}
@@ -307,7 +307,7 @@ public class Interpreter extends ASTBaseVisitor<Void> {
 		visit(lNode);
 		visit(rNode);
 
-		execRelationalComparison(lNode.type, ">");
+		execComparison(lNode.type, ">");
 
 		return null;  
 	}
@@ -320,16 +320,18 @@ public class Interpreter extends ASTBaseVisitor<Void> {
 		visit(lNode);
 		visit(rNode);
 
-		execRelationalComparison(lNode.type, ">=");
+		execComparison(lNode.type, ">=");
 
 		return null; 
 	}
 
 	/*------------------------------------------------------------------------------*
-	 *	Arithmetics operations
+	 *	Arithmetic operations
 	 *------------------------------------------------------------------------------*/
 
+	//  Helper method to execute the '+', '-', '*', '/', '%' operations
 	private void execArithmetic(Type t, String op) {
+		// Executes arithmetic operations with INT values
 		if(t == Type.INT_TYPE) {
 			int r = stack.popInt();
 			int l = stack.popInt();
@@ -343,9 +345,10 @@ public class Interpreter extends ASTBaseVisitor<Void> {
 				case "%":		result = l % r;		break;
 			}
 
-			stack.pushInt(result);		
+			stack.pushInt(result);
 		}
 
+		// Executes arithmetic operations with FLOAT32 values
 		if(t == Type.FLOAT32_TYPE) {
 			float r = stack.popFloat();
 			float l = stack.popFloat();
@@ -469,24 +472,86 @@ public class Interpreter extends ASTBaseVisitor<Void> {
 		return null; 
 	}
 
+	// Helper method to execute the '++' and '--' unary operations
+	private void execUnary(Type t, int varIdx, String op) {
+		if (t == Type.INT_TYPE) {
+			int number = stack.popInt();
+
+			switch (op) {
+				case "++":  number++; 	break;
+				case "--":  number--; 	break;
+			}
+
+			// Updates the var value in memory
+			memory.storeInt(varIdx, number);
+
+			stack.pushInt(number);
+		}
+
+		if (t == Type.FLOAT32_TYPE) {
+			float number = stack.popInt();
+
+			switch (op) {
+				case "++":  number++; 	break;
+				case "--":  number--; 	break;
+			}
+
+			// Updates the var value in memory
+			memory.storeFloat(varIdx, number);
+
+			stack.pushFloat(number);
+		}
+	}
+
 	@Override
 	protected Void visitPlusPlus(AST node) {
-		return null; 
+		AST child = node.getChild(0);
+
+		visit(child);
+
+		execUnary(child.type, child.intData, "++");
+
+		return null;
 	}
 
 	@Override
 	protected Void visitMinusMinus(AST node) {
-		return null; 
+		AST child = node.getChild(0);
+
+		visit(child);
+
+		execUnary(child.type, child.intData, "--");
+
+		return null;
 	}
 
 	@Override
 	protected Void visitIf(AST node) {
-		return null; 
+		// Visits the condition node
+		visit(node.getChild(0));
+
+		int condition = stack.popInt();
+		
+		if (condition == 1) {
+			// Visits the IF statement section
+			visit(node.getChild(1));
+		} else {
+			// Checks if there is an ELSE node
+			if (condition == 0 && node.getChildren().size() == 3) {
+				// Visits the ELSE node
+				visit(node.getChild(2));
+			}
+		}
+
+		return null;
 	}
 
 	@Override
 	protected Void visitElse(AST node) {
-		return null; 
+		// Visits the statement section
+		visit(node.getChild(0));
+
+		return null;
 	}
 
 	@Override
