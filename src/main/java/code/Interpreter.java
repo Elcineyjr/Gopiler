@@ -329,29 +329,103 @@ public class Interpreter extends ASTBaseVisitor<Void> {
 	 *	Arithmetics operations
 	 *------------------------------------------------------------------------------*/
 
+	private void execArithmetic(Type t, String op) {
+		if(t == Type.INT_TYPE) {
+			int r = stack.popInt();
+			int l = stack.popInt();
+
+			int result = 0;
+			switch (op) {
+				case "+":		result = l + r;		break;
+				case "-":		result = l - r;		break;
+				case "*":		result = l * r;		break;
+				case "/":		result = l / r;		break;
+				case "%":		result = l % r;		break;
+			}
+
+			stack.pushInt(result);		
+		}
+
+		if(t == Type.FLOAT32_TYPE) {
+			float r = stack.popFloat();
+			float l = stack.popFloat();
+
+			float result = 0;
+			switch (op) {
+				case "+":		result = l + r;		break;
+				case "-":		result = l - r;		break;
+				case "*":		result = l * r;		break;
+				case "/":		result = l / r;		break;
+				case "%":		result = l % r;		break;
+			}
+
+			stack.pushFloat(result);
+		}
+	}
+
 	@Override
 	protected Void visitStar(AST node) {
-		return null; 
+		AST lNode = node.getChild(0);
+		AST rNode = node.getChild(1);
+
+		visit(lNode);
+		visit(rNode);
+
+		execArithmetic(lNode.type, "*");
+
+		return null;
 	}
 
 	@Override
 	protected Void visitDiv(AST node) {
-		return null; 
+		AST lNode = node.getChild(0);
+		AST rNode = node.getChild(1);
+
+		visit(lNode);
+		visit(rNode);
+
+		execArithmetic(lNode.type, "/");
+
+		return null;
 	}
 
 	@Override
 	protected Void visitMod(AST node) {
+		AST lNode = node.getChild(0);
+		AST rNode = node.getChild(1);
+
+		visit(lNode);
+		visit(rNode);
+
+		execArithmetic(lNode.type, "%");
+
 		return null; 
 	}
 
 	@Override
 	protected Void visitPlus(AST node) {
-		return null; 
+		AST lNode = node.getChild(0);
+		AST rNode = node.getChild(1);
+
+		visit(lNode);
+		visit(rNode);
+
+		execArithmetic(lNode.type, "+");
+
+		return null;
 	}
 
 	@Override
 	protected Void visitMinus(AST node) {
-		return null; 
+		AST lNode = node.getChild(0);
+		AST rNode = node.getChild(1);
+
+		visit(lNode);
+		visit(rNode);
+
+		execArithmetic(lNode.type, "-");
+
+		return null;
 	}
 
 
