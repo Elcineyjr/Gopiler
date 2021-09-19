@@ -452,8 +452,60 @@ public class Interpreter extends ASTBaseVisitor<Void> {
 		return null; 
 	}
 
+	// TODO: more testing and check for strings
+	// Helper method to execute the ':=', '=', '+=' and '-=' assign operations
+	private void execAssign(Type t, int varIdx, String op) {
+		if (t == Type.INT_TYPE) {
+			// Load the var value from memory
+			int varValue = memory.loadInt(varIdx);
+
+			int number = stack.popInt();
+	
+			switch (op) {
+				case ":=":
+				case "=":		varValue = number;		break;
+				case "+=":  	varValue += number;		break;
+				case "-=":  	varValue -= number;		break;
+			}
+	
+			// Updates the var value in memory
+			memory.storeInt(varIdx, varValue);
+		}
+
+		if (t == Type.FLOAT32_TYPE) {
+			// Load the var value from memory
+			float varValue = memory.loadFloat(varIdx);
+
+			float number = stack.popFloat();
+	
+			switch (op) {
+				case ":=":
+				case "=":		varValue = number;		break;
+				case "+=":  	varValue += number;		break;
+				case "-=":  	varValue -= number;		break;
+			}
+	
+			// Updates the var value in memory
+			memory.storeFloat(varIdx, varValue);
+		} 	
+	}
+
 	@Override
 	protected Void visitDeclareAssign(AST node) {
+		// System.out.println(vt.toString());
+		
+		// // Visits the expression node
+		// AST expression = node.getChild(0);
+		// visit(expression);
+
+		// // Get the var index and type 
+		// int varIdx = node.intData;
+		// Type varType = vt.getType(varIdx);
+		
+		// System.out.println("jajajajajjajajaj");
+
+		// execAssign(varType, varIdx, ":=");
+
 		return null; 
 	}
 
@@ -556,6 +608,33 @@ public class Interpreter extends ASTBaseVisitor<Void> {
 
 	@Override
 	protected Void visitWhile(AST node) {
+		int size = node.getChildren().size();
+
+		// Has both the condition and statement section
+		if (size == 2) {
+			// Visits the condition for the first time
+			visit(node.getChild(0));
+
+			int condition = stack.popInt();
+			
+			while (condition == 1) {
+				// Visits the statement section
+				visit(node.getChild(1));
+				
+				// Visits the condition again to reevaluate it
+				visit(node.getChild(0));
+				condition = stack.popInt();
+			}
+		}
+
+		// Doenst have a condition to be evaluated
+		if(size == 1) {
+			while(true) {
+				// Visits the statement section
+				visit(node.getChild(0));
+			}
+		}
+
 		return null; 
 	}
 
