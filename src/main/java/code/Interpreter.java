@@ -447,22 +447,17 @@ public class Interpreter extends ASTBaseVisitor<Void> {
 		return null; 
 	}
 
-	@Override
-	protected Void visitVarDecl(AST node) {
-		return null; 
-	}
-
-	// TODO: more testing and check for strings
-	// Helper method to execute the ':=', '=', '+=' and '-=' assign operations
+	// Helper method to execute the '=', '+=' and '-=' assign operations
 	private void execAssign(Type t, int varIdx, String op) {
-		if (t == Type.INT_TYPE) {
+		// Executes the assign operations for INT, BOOL (represented as int) and 
+		// STRING (represented as the string index at the string table) types
+		if (t == Type.INT_TYPE || t == Type.BOOL_TYPE || t == Type.STRING_TYPE) {
 			// Load the var value from memory
 			int varValue = memory.loadInt(varIdx);
 
 			int number = stack.popInt();
 	
 			switch (op) {
-				case ":=":
 				case "=":		varValue = number;		break;
 				case "+=":  	varValue += number;		break;
 				case "-=":  	varValue -= number;		break;
@@ -472,6 +467,7 @@ public class Interpreter extends ASTBaseVisitor<Void> {
 			memory.storeInt(varIdx, varValue);
 		}
 
+		// Executes the assign operations for FLOAT32 type
 		if (t == Type.FLOAT32_TYPE) {
 			// Load the var value from memory
 			float varValue = memory.loadFloat(varIdx);
@@ -479,7 +475,6 @@ public class Interpreter extends ASTBaseVisitor<Void> {
 			float number = stack.popFloat();
 	
 			switch (op) {
-				case ":=":
 				case "=":		varValue = number;		break;
 				case "+=":  	varValue += number;		break;
 				case "-=":  	varValue -= number;		break;
@@ -491,37 +486,62 @@ public class Interpreter extends ASTBaseVisitor<Void> {
 	}
 
 	@Override
-	protected Void visitDeclareAssign(AST node) {
-		// System.out.println(vt.toString());
-		
-		// // Visits the expression node
-		// AST expression = node.getChild(0);
-		// visit(expression);
+	protected Void visitVarDecl(AST node) {
+		// Checks if the variable was assigned a value at declaration
+		if(node.getChildren().size() > 0) {
+			// Visits the expression to push its value to the stack
+			visit(node.getChild(0));
+	
+			// Get the var index and type 
+			int varIdx = node.intData;
+			Type varType = vt.getType(varIdx);
+	
+			execAssign(varType, varIdx, "=");
+		}
 
-		// // Get the var index and type 
-		// int varIdx = node.intData;
-		// Type varType = vt.getType(varIdx);
-		
-		// System.out.println("jajajajajjajajaj");
-
-		// execAssign(varType, varIdx, ":=");
-
-		return null; 
+		return null;
 	}
 
 	@Override
 	protected Void visitAssign(AST node) {
-		return null; 
+		// Visits the expression to push its value to the stack
+		visit(node.getChild(1));
+
+		// Get the var index and type 
+		int varIdx = node.getChild(0).intData;
+		Type varType = vt.getType(varIdx);
+
+		execAssign(varType, varIdx, "=");
+
+		return null;
 	}
 
 	@Override
 	protected Void visitPlusAssign(AST node) {
-		return null; 
+		// Visits the expression to push its value to the stack
+		visit(node.getChild(1));
+
+		// Get the var index and type 
+		int varIdx = node.getChild(0).intData;
+		Type varType = vt.getType(varIdx);
+
+		execAssign(varType, varIdx, "+=");
+
+		return null;
 	}
 
 	@Override
 	protected Void visitMinusAssign(AST node) {
-		return null; 
+		// Visits the expression to push its value to the stack
+		visit(node.getChild(1));
+
+		// Get the var index and type 
+		int varIdx = node.getChild(0).intData;
+		Type varType = vt.getType(varIdx);
+
+		execAssign(varType, varIdx, "-=");
+
+		return null;
 	}
 
 	// Helper method to execute the '++' and '--' unary operations

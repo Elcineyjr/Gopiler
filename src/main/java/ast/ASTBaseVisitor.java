@@ -32,7 +32,6 @@ public abstract class ASTBaseVisitor<T> {
 			case STATEMENT_SECTION_NODE: 	return visitStatementSection(node);
 			case RETURN_NODE: 				return visitReturn(node);
 			case VAR_DECL_NODE: 			return visitVarDecl(node);
-			case DECLARE_ASSIGN_NODE: 		return visitDeclareAssign(node);
 			case ASSIGN_NODE: 				return visitAssign(node);
 			case PLUS_ASSIGN_NODE: 			return visitPlusAssign(node);
 			case MINUS_ASSIGN_NODE: 		return visitMinusAssign(node);
@@ -87,7 +86,6 @@ public abstract class ASTBaseVisitor<T> {
 	protected abstract T visitStatementSection(AST node);
 	protected abstract T visitReturn(AST node);
 	protected abstract T visitVarDecl(AST node);
-	protected abstract T visitDeclareAssign(AST node);
 	protected abstract T visitAssign(AST node);
 	protected abstract T visitPlusAssign(AST node);
 	protected abstract T visitMinusAssign(AST node);

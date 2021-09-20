@@ -31,7 +31,6 @@ public enum NodeKind {
     STATEMENT_SECTION_NODE,
     RETURN_NODE,
     VAR_DECL_NODE,
-    DECLARE_ASSIGN_NODE,
     ASSIGN_NODE,
     PLUS_ASSIGN_NODE,
     MINUS_ASSIGN_NODE,
@@ -85,7 +84,6 @@ public enum NodeKind {
             case MINUS_NODE:                return "-";
 
             case VAR_DECL_NODE:             return "var_decl";            
-            case DECLARE_ASSIGN_NODE:       return ":=";
             case ASSIGN_NODE:               return "=";
             case PLUS_ASSIGN_NODE:          return "+=";
             case MINUS_ASSIGN_NODE:         return "-=";
@@ -122,7 +120,6 @@ public enum NodeKind {
 	        case STRING_VAL_NODE:
 	        case FLOAT32_VAL_NODE:
 	        case VAR_DECL_NODE:
-            case DECLARE_ASSIGN_NODE:
 	        case VAR_USE_NODE:
 	            return true;
 	        default:

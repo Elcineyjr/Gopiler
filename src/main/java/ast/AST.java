@@ -83,7 +83,6 @@ public class AST {
 	    }
 	    if (this.kind == NodeKind.VAR_DECL_NODE 
 			|| this.kind == NodeKind.VAR_USE_NODE 
-			|| this.kind == NodeKind.DECLARE_ASSIGN_NODE
 			) {
 			if(vt.getArgSize(this.intData) > 0) {
 				System.err.printf("[%d] ", vt.getArgSize(this.intData));
