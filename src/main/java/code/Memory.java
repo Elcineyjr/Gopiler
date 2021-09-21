@@ -7,11 +7,21 @@ import tables.VarTable;
 @SuppressWarnings("serial")
 public class Memory extends Vector<Word> {
 
-	private static int memSize;
+	private static int memSize = 0;
 
+	// Allocate a memory space the same size as the sum of all variable sizes
 	public Memory(VarTable vt) {
+		// Memory size starts the same as the VarTable size
 		Memory.memSize = vt.size();
 
+		// Adds the var args into account for the memory size
+		for (int i = 0; i < vt.size(); i++) {
+			int argSize = vt.getArgSize(i);
+
+			if(argSize > 0) Memory.memSize += argSize;
+		}
+
+		// Empties the memory
 		for (int i = 0; i < Memory.memSize; i++) {
 			this.add(Word.fromInt(0));
 		}

@@ -3,10 +3,13 @@ package code;
 import java.io.IOException;
 import java.io.StreamTokenizer;
 import java.io.StringReader;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Scanner;
 
 import ast.AST;
 import ast.ASTBaseVisitor;
+import tables.FuncTable;
 import tables.StrTable;
 import tables.VarTable;
 import typing.Type;
@@ -17,24 +20,27 @@ public class Interpreter extends ASTBaseVisitor<Void> {
 	private final Memory memory;
 	private final StrTable st;
 	private final VarTable vt;
+	private final FuncTable ft;
 	private final Scanner in;
+	private List<FunctionRef> functionRefs;
 
-	public Interpreter(StrTable st, VarTable vt) {
+	public Interpreter(StrTable st, VarTable vt, FuncTable ft) {
 		this.stack = new DataStack();
 		this.memory = new Memory(vt);
 		this.st = st;
 		this.vt = vt;
+		this.ft = ft;
 		this.in = new Scanner(System.in);
+		this.functionRefs = new ArrayList<FunctionRef>();
 	}
 
-	// Helper method that visits every child from a given node
-	// to avoid code repetition
-	void visitsEveryChild(AST node) {
-		for (AST child : node.getChildren()) {
-			visit(child);
+	// Helper method to find the function reference when the function is called
+	FunctionRef findFuncRef(String name) {
+		for (FunctionRef ref : functionRefs) {
+			if (ref.name == name) return ref;
 		}
+		return null;
 	}
-
 
 	/*------------------------------------------------------------------------------*
 	 *	Var values
@@ -151,26 +157,28 @@ public class Interpreter extends ASTBaseVisitor<Void> {
 					System.err.printf("Invalid output type: %s!\n", expression.type.toString());
 					System.exit(1);
 			}
+			System.out.print(" ");
 		}
+		System.out.println();
 
 		return null;
 	}
 
 	private Void writeInt() {
-		System.out.println(stack.popInt());
+		System.out.print(stack.popInt());
 		return null;
 	}
 
 	private Void writeFloat32() {
-		System.out.println(stack.popFloat());
+		System.out.print(stack.popFloat());
 		return null;
 	}
 
 	private Void writeBool() {
 		if (stack.popInt() == 0) {
-			System.out.println("false");
+			System.out.print("false");
 		} else {
-			System.out.println("true");
+			System.out.print("true");
 		}
 		return null;
 	}
@@ -178,7 +186,7 @@ public class Interpreter extends ASTBaseVisitor<Void> {
 	private Void writeString() {
 		int stringIdx = stack.popInt();
 		String originalString = st.get(stringIdx);
-		System.out.println(originalString.replace("\"", ""));
+		System.out.print(originalString.replace("\"", ""));
 		return null;
 	}
 
@@ -438,12 +446,20 @@ public class Interpreter extends ASTBaseVisitor<Void> {
 
 	@Override
 	protected Void visitStatementSection(AST node) {
-		visitsEveryChild(node);
+		for (AST child : node.getChildren()) {
+			visit(child);
+		}
 		return null; 
 	}
 
 	@Override
 	protected Void visitReturn(AST node) {
+		// Checks if there is an expression node child
+		if (node.getChildren().size() == 1) {
+			// Visits the expression
+			visit(node.getChild(0));
+		}
+
 		return null; 
 	}
 
@@ -485,6 +501,7 @@ public class Interpreter extends ASTBaseVisitor<Void> {
 		} 	
 	}
 
+	// TODO: handle arrays
 	@Override
 	protected Void visitVarDecl(AST node) {
 		// Checks if the variable was assigned a value at declaration
@@ -660,6 +677,26 @@ public class Interpreter extends ASTBaseVisitor<Void> {
 
 	@Override
 	protected Void visitFor(AST node) {
+		// Visits the var declaration node
+		visit(node.getChild(0));
+
+		// Visits the condition for the first time and pops the result from the stack
+		visit(node.getChild(1));
+		int condition = stack.popInt();
+		
+		while (condition == 1) {
+			// Visits the statement section
+			visit(node.getChild(3));
+			
+			// Visits the var increment node
+			visit(node.getChild(2));
+			stack.popInt(); // removes the incremented var value from the stack
+			
+			// Visits the condition again to reevaluate it
+			visit(node.getChild(1));
+			condition = stack.popInt();
+		}
+
 		return null; 
 	}
 	
@@ -680,7 +717,28 @@ public class Interpreter extends ASTBaseVisitor<Void> {
 
 	@Override
 	protected Void visitFuncCall(AST node) {
-		return null; 
+		int funcIdx = node.intData;
+		String name = ft.getName(funcIdx);
+
+		FunctionRef ref = findFuncRef(name);
+		AST expressionList = node.getChild(0);
+
+		// TODO: handle arrays
+		if (ref.args != null) {
+			// Assigns every value from the expression list to its corresponding arg
+			for(int i = 0; i < ref.args.getChildren().size(); i++) {
+				// Visits the expression and pushes its value to the stack
+				visit(expressionList.getChild(i));
+	
+				AST arg = ref.args.getChild(i);
+	
+				execAssign(arg.type, arg.intData, "=");
+			}
+		}
+
+		visit(ref.statementSection);
+		
+		return null;
 	}
 
 	/*------------------------------------------------------------------------------*
@@ -697,13 +755,32 @@ public class Interpreter extends ASTBaseVisitor<Void> {
 
 	@Override
 	protected Void visitFuncDecl(AST node) {
-		visitsEveryChild(node);
-		return null; 
+		AST argsNode = null;
+		AST stmtNode = null;
+
+		if (node.getChildren().size() == 1) {
+			// Func doenst have an arg list
+			stmtNode = node.getChild(0);
+		} else {
+			// Func has both arg list and stmt
+			argsNode = node.getChild(0);
+			stmtNode = node.getChild(1);
+		}
+
+		int funcIdx = node.intData;
+		String name = ft.getName(funcIdx);
+
+		// Creates a new function reference
+		FunctionRef funcRef = new FunctionRef(name, argsNode, stmtNode);
+		
+		// Saves the reference for future function calls
+		functionRefs.add(funcRef);
+
+		return null;
 	}
 
 	@Override
 	protected Void visitFuncArgs(AST node) {
-		visitsEveryChild(node);
 		return null; 
 	}
 
@@ -713,7 +790,6 @@ public class Interpreter extends ASTBaseVisitor<Void> {
 
 	@Override
 	protected Void visitExpressionList(AST node) {
-		visitsEveryChild(node);
 		return null; 
 	}
 
@@ -730,10 +806,13 @@ public class Interpreter extends ASTBaseVisitor<Void> {
 
 	@Override
 	protected Void visitFuncList(AST node) {
-		visitsEveryChild(node);
+		for (AST child : node.getChildren()) {
+			visit(child);
+		}
 		return null; 
 	}
 
+	// TODO: handle arrays
 	@Override
 	protected Void visitVarUse(AST node) {
 		int varIdx = node.intData;
@@ -745,4 +824,16 @@ public class Interpreter extends ASTBaseVisitor<Void> {
 		return null; 
 	}
 
+	// Helper class to save the statement section and arg list from each function
+	private class FunctionRef {
+		String name;
+		AST args;
+		AST statementSection;
+
+		public FunctionRef(String name, AST args, AST stmt) {
+			this.name = name;
+			this.args = args;
+			this.statementSection = stmt;
+		}
+	}
 }

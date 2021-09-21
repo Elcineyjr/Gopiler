@@ -33,7 +33,7 @@ public class Main {
 
 		checker.printAST();
 		
-		Interpreter interpreter = new Interpreter(checker.st, checker.vt);
+		Interpreter interpreter = new Interpreter(checker.st, checker.vt, checker.ft);
 		interpreter.execute(checker.root);
 	}
 
