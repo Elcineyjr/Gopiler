@@ -11,16 +11,6 @@ import tables.StrTable;
 import tables.VarTable;
 import typing.Type;
 
-// TODOs:
-// Must do:
-// 	-
-// Would be great if done:
-// - implement tables using hash
-// - maybe move the typeErrors and other functions to typing package
-// - 
-
-
-
 public class SemanticChecker extends GoParserBaseVisitor<AST> {
 
 	protected final StrTable st = new StrTable();
@@ -729,7 +719,7 @@ public class SemanticChecker extends GoParserBaseVisitor<AST> {
 	// 		checkCase(ctx.CASE().get(i).getSymbol().getLine() , caseType, expressionType);
 	// 	}
 
-	// 	// TODO: that will probably cause some problems when trying to figure out
+	// 	// that will probably cause some problems when trying to figure out
 	// 	// which statement is from which case
 	// 	// Recursively visits every statement for error checking
 	// 	for(GoParser.StatementContext stmt : ctx.statement()) {

@@ -1,8 +1,5 @@
 package code;
 
-import java.io.IOException;
-import java.io.StreamTokenizer;
-import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
@@ -13,7 +10,9 @@ import tables.FuncTable;
 import tables.StrTable;
 import tables.VarTable;
 import typing.Type;
-
+/*
+ * Unfortunately the interpreter doesn't know how to handle recursion and arrays
+*/
 public class Interpreter extends ASTBaseVisitor<Void> {
 
 	private final DataStack stack;

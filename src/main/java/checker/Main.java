@@ -12,7 +12,6 @@ import parser.GoLexer;
 import parser.GoParser;
 
 public class Main {
-	//  TODO: args error checking
 	public static void main(String[] args) throws IOException {
 		CharStream input = CharStreams.fromFileName(args[0]);
 
