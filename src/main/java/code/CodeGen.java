@@ -504,31 +504,166 @@ public final class CodeGen extends ASTBaseVisitor<Integer> {
 
 	@Override
 	protected Integer visitVarDecl(AST node) {
+		// Checks if the variable was assigned a value at declaration
+		if(node.getChildren().size() > 0) {
+			// Register with the expression value
+			int x = visit(node.getChild(0));
+	
+			// Get the var index at the var table and its type
+			int addr = node.intData;
+			Type varType = vt.getType(addr);
+	
+			// Emits the 'store word' for the corresponding type
+			if (varType == Type.FLOAT32_TYPE) {
+				emit(STWf, addr, x);
+			} else {
+				emit(STWi, addr, x);
+			}
+		}
+
 		return null;
 	}
 
 	@Override
 	protected Integer visitAssign(AST node) {
-		return null;
+		// Register with the expression value
+	    int x = visit(node.getChild(1));
+
+		// Get the var index at the var table and its type
+	    int addr = node.getChild(0).intData;
+	    Type varType = vt.getType(addr);
+
+		// Emits the 'store word' for the corresponding type
+	    if (varType == Type.FLOAT32_TYPE) {
+	        emit(STWf, addr, x);
+	    } else {
+	        emit(STWi, addr, x);
+	    }
+
+	    return null;
 	}
 
 	@Override
 	protected Integer visitPlusAssign(AST node) {
-		return null;
+		AST var = node.getChild(0);
+		AST expression = node.getChild(1);
+
+		// Registers with the var and expression values
+	    int y = visit(var);
+	    int z = visit(expression);
+
+		// Get the var index at the var table
+	    int addr = var.intData;
+
+		// First emits the 'addition' (var + expression)
+		// then emits the 'store word' for the corresponding type
+	    if (var.type == Type.FLOAT32_TYPE) {
+			int x = newFloatReg();
+			emit(ADDf, x, y, z); 	// fx <- fy + fz
+	        emit(STWf, addr, x);	// data_mem[adrr] <- fx
+	    } else {
+			int x = newIntReg();
+			emit(ADDi, x, y, z);	// ix <- iy + iz
+	        emit(STWi, addr, x);	// data_mem[adrr] <- ix
+	    }
+
+	    return null;
 	}
 
 	@Override
 	protected Integer visitMinusAssign(AST node) {
+		AST var = node.getChild(0);
+		AST expression = node.getChild(1);
+
+		// Registers with the var and expression values
+	    int y = visit(var);
+	    int z = visit(expression);
+
+		// Get the var index at the var table
+	    int addr = var.intData;
+
+		// First emits the 'subtraction' (var - expression)
+		// then emits the 'store word' for the corresponding type
+	    if (var.type == Type.FLOAT32_TYPE) {
+			int x = newFloatReg();
+			emit(SUBf, x, y, z); 	// fx <- fy - fz
+	        emit(STWf, addr, x);	// data_mem[adrr] <- fx
+	    } else {
+			int x = newIntReg();
+			emit(SUBi, x, y, z);	// ix <- iy - iz
+	        emit(STWi, addr, x);	// data_mem[adrr] <- ix
+	    }
+
 		return null;
 	}
 
 	@Override
 	protected Integer visitPlusPlus(AST node) {
+		AST var = node.getChild(0);
+
+		// Register with the var value
+	    int y = visit(var);
+
+		// Get the var index at the var table
+	    int addr = var.intData;
+
+		// First emits the 'load immediate' with the constant,
+		// then emits the 'addition' (var + constant)
+		// and finally emits the 'store word'
+	    if (var.type == Type.FLOAT32_TYPE) {
+			int z = newFloatReg();
+			int c = Float.floatToIntBits(1.0f); // See line 125 for explanation
+			emit(LDIf, z, c);		// fz <- c
+
+			int x = newFloatReg();
+			emit(ADDf, x, y, z); 	// fx <- fy + fz
+
+	        emit(STWf, addr, x);	// data_mem[adrr] <- fx
+	    } else {
+			int z = newIntReg();
+			emit(LDIi, z, 1);		// iz <- 1
+
+			int x = newIntReg();
+			emit(ADDi, x, y, z);	// ix <- iy + iz
+
+	        emit(STWi, addr, x);	// data_mem[adrr] <- ix
+	    }
+
 		return null;
 	}
 
 	@Override
 	protected Integer visitMinusMinus(AST node) {
+		AST var = node.getChild(0);
+
+		// Register with the var value
+	    int y = visit(var);
+
+		// Get the var index at the var table
+	    int addr = var.intData;
+
+		// First emits the 'load immediate' with the constant,
+		// then emits the 'subtraction' (var - constant)
+		// and finally emits the 'store word'
+	    if (var.type == Type.FLOAT32_TYPE) {
+			int z = newFloatReg();
+			int c = Float.floatToIntBits(1.0f); // See line 125 for explanation
+			emit(LDIf, z, c);		// fz <- c
+
+			int x = newFloatReg();
+			emit(SUBf, x, y, z); 	// fx <- fy - fz
+
+	        emit(STWf, addr, x);	// data_mem[adrr] <- fx
+	    } else {
+			int z = newIntReg();
+			emit(LDIi, z, 1);		// iz <- 1
+
+			int x = newIntReg();
+			emit(SUBi, x, y, z);	// ix <- iy - iz
+
+	        emit(STWi, addr, x);	// data_mem[adrr] <- ix
+	    }
+
 		return null;
 	}
 
