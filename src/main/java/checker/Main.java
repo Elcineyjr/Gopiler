@@ -7,6 +7,7 @@ import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTree;
 
+import code.CodeGen;
 import code.Interpreter;
 import parser.GoLexer;
 import parser.GoParser;
@@ -30,10 +31,13 @@ public class Main {
 		SemanticChecker checker = new SemanticChecker();
 		checker.visit(tree);
 
-		checker.printAST();
+		// checker.printAST();
 		
-		Interpreter interpreter = new Interpreter(checker.st, checker.vt, checker.ft);
-		interpreter.execute(checker.root);
+		// Interpreter interpreter = new Interpreter(checker.st, checker.vt, checker.ft);
+		// interpreter.execute(checker.root);
+
+		CodeGen codeGen = new CodeGen(checker.st, checker.vt);
+		codeGen.execute(checker.root);
 	}
 
 }

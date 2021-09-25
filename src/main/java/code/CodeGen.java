@@ -4,6 +4,7 @@ import ast.AST;
 import ast.ASTBaseVisitor;
 import tables.StrTable;
 import tables.VarTable;
+import typing.Type;
 
 import static code.OpCode.*;
 import static code.Instruction.INSTR_MEM_SIZE;
@@ -23,7 +24,6 @@ public final class CodeGen extends ASTBaseVisitor<Integer> {
 		this.vt = vt;
 	}
 	
-	// Função principal para geração de código.
 	@Override
 	public void execute(AST root) {
 		nextInstr = 0;
@@ -99,22 +99,49 @@ public final class CodeGen extends ASTBaseVisitor<Integer> {
 
     @Override
 	protected Integer visitBoolVal(AST node) {
-		return null;
+		int x = newIntReg();
+	    int c = node.intData;
+
+		// Emits the load immediate with the bool data
+	    emit(LDIi, x, c);
+
+	    return x;
 	}
 
 	@Override
 	protected Integer visitIntVal(AST node) {
-		return null; 
+		int x = newIntReg();
+	    int c = node.intData;
+
+		// Emits the load immediate with the int data
+	    emit(LDIi, x, c);
+
+	    return x;
 	}
 
 	@Override
 	protected Integer visitFloatVal(AST node) {
-		return null; 
+		int x = newFloatReg();
+	    // We need to read as an int because the NSTM cannot handle floats directly.
+	    // But we have a float stored in the AST, so we just convert it as an int
+	    // and magically we have a float encoded as an int... :P
+	    int c = Float.floatToIntBits(node.floatData);
+
+		// Emits the load immediate with the float(as int, see above) data
+	    emit(LDIf, x, c);
+
+	    return x;
 	}
 
 	@Override
 	protected Integer visitStringVal(AST node) {
-		return null; 
+		int x = newIntReg();
+	    int c = node.intData;
+
+		// Emits the load immediate using the string index
+	    emit(LDIi, x, c);
+
+	    return x;
 	}
 
 	/*------------------------------------------------------------------------------*
@@ -123,7 +150,38 @@ public final class CodeGen extends ASTBaseVisitor<Integer> {
 
 	@Override
 	protected Integer visitInput(AST node) {
-		return null;
+		AST var = node.getChild(0);
+	    int addr = var.intData;
+	    int x;
+
+		// Creates a new register, emits the read call and then emits the store word call
+		switch (var.type) {
+			case INT_TYPE:
+				x = newIntReg();
+				emit(CALL, 0, x); 		// read int call
+				emit(STWi, addr, x);	// store int call
+				break;
+			case FLOAT32_TYPE:
+				x = newFloatReg();
+				emit(CALL, 1, x);		// read float call
+				emit(STWf, addr, x);	// store float call
+				break;
+			case BOOL_TYPE:
+				x = newIntReg();
+				emit(CALL, 2, x);		// read bool call
+				emit(STWi, addr, x);	// store bool call
+				break;
+			case STRING_TYPE:
+				x = newIntReg();
+				emit(CALL, 3, x);		// read string call
+				emit(STWi, addr, x);	// store string call
+				break;
+			default:
+				System.err.printf("Invalid type: %s!\n", var.type.toString());
+				System.exit(1);
+		}
+
+	    return null;
 	}
 
 	/*------------------------------------------------------------------------------*
@@ -132,6 +190,25 @@ public final class CodeGen extends ASTBaseVisitor<Integer> {
 
 	@Override
 	protected Integer visitOutput(AST node) {
+		// Get the expression list node
+		AST expressionList = node.getChild(0);
+		
+		// Iterates over the expression list's children to emit the print call
+		for (AST expression : expressionList.getChildren()) {
+			int x = visit(expression);
+
+			switch(expression.type) {
+				case INT_TYPE:  	emit(CALL, 4, x);  break;
+				case FLOAT32_TYPE: 	emit(CALL, 5, x);  break;
+				case BOOL_TYPE: 	emit(CALL, 6, x);  break;
+				case STRING_TYPE:  	emit(CALL, 7, x);  break;
+				case NO_TYPE:
+				default:
+					System.err.printf("Invalid type: %s!\n", expression.type.toString());
+					System.exit(1);
+			}
+		}
+
 		return null;
 	}
 
@@ -206,6 +283,11 @@ public final class CodeGen extends ASTBaseVisitor<Integer> {
 
 	@Override
 	protected Integer visitStatementSection(AST node) {
+		// Visits every statement inside block
+		for (AST child : node.getChildren()) {
+			visit(child);
+		}
+
 		return null; 
 	}
 
@@ -290,7 +372,10 @@ public final class CodeGen extends ASTBaseVisitor<Integer> {
 
 	@Override
 	protected Integer visitFuncMain(AST node) {
-		return null; 
+		// Visits the statement section node
+		visit(node.getChild(0));
+
+		return null;
 	}
 
 	@Override
@@ -314,16 +399,37 @@ public final class CodeGen extends ASTBaseVisitor<Integer> {
 
 	@Override
 	protected Integer visitProgram(AST node) {
-		return null; 
+		// Visits the function list node
+		visit(node.getChild(0));
+
+		return null;
 	}
 
 	@Override
 	protected Integer visitFuncList(AST node) {
-		return null; 
+		// Visits every func declaration
+		for (AST child : node.getChildren()) {
+			visit(child);
+		}
+
+		return null;
 	}
 
 	@Override
 	protected Integer visitVarUse(AST node) {
-		return null; 
+		// Get the var index at the var table
+		int addr = node.intData;
+	    int x;
+
+		// Emits a load from address to a register according with the variable type
+	    if (node.type == Type.FLOAT32_TYPE) {
+	        x = newFloatReg();
+	        emit(LDWf, x, addr);
+	    } else {
+	        x = newIntReg();
+	        emit(LDWi, x, addr);
+	    }
+
+	    return x;
 	}
 }

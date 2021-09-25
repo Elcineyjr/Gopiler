@@ -110,14 +110,14 @@ public enum OpCode {
 	// ----------------------------------------------------------------------------
 	// code	| x  | Description
 	// ----------- -----------------------------------------------------------
-	// 0	| ix | Read int:   register ix <- int  from stdin
-	// 1	| fx | Read real:  register fx <- real from stdin
-	// 2	| ix | Read bool:  register ix <- bool from stdin (as int)
-	// 3	| ix | Read str:   str_tab[ix] <- str from stdin
-	// 4	| ix | Write int:  stdout <- register ix (as str)
-	// 5	| fx | Write real: stdout <- register fx (as str)
-	// 6	| ix | Write bool: stdout <- register ix (as str)
-	// 7	| ix | Write str:  stdout <- str_tab[ix]
+	// 0	| ix | Read int:   		register ix <- int  from stdin
+	// 1	| fx | Read float32:  	register fx <- float32 from stdin
+	// 2	| ix | Read bool:  		register ix <- bool from stdin (as int)
+	// 3	| ix | Read str:   		str_tab[ix] <- str from stdin
+	// 4	| ix | Write int:  		stdout <- register ix (as str)
+	// 5	| fx | Write float32: 	stdout <- register fx (as str)
+	// 6	| ix | Write bool: 		stdout <- register ix (as str)
+	// 7	| ix | Write str:  		stdout <- str_tab[ix]
 	// ----------------------------------------------------------------------------
 	// OBS.: All strings in memory are null ('\0') terminated, like in C.
 	// ----------------------------------------------------------------------------
