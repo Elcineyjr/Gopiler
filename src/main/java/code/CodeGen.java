@@ -218,32 +218,158 @@ public final class CodeGen extends ASTBaseVisitor<Integer> {
 
 	@Override
 	protected Integer visitEquals(AST node) {
-		return null; 
+		AST l = node.getChild(0);
+		AST r = node.getChild(1);
+
+		// Visits each expression and get their registers
+		int y = visit(l);
+		int z = visit(r);
+
+		// Result register
+		int x = newIntReg();
+
+		// Emits the 'equals operation' for the corresponding type
+		switch (l.type) {
+			case INT_TYPE:			emit(EQUi, x, y, z);	break;
+			case FLOAT32_TYPE:		emit(EQUf, x, y, z);	break;
+			case BOOL_TYPE:			emit(EQUi, x, y, z);	break;
+			case STRING_TYPE:		emit(EQUs, x, y, z);	break;
+			default:
+				System.err.printf("Invalid type: %s!\n", l.type.toString());
+				System.exit(1);
+		}
+
+	    return x;
 	}
 
 	@Override
 	protected Integer visitNotEquals(AST node) {
-		return null;
+		AST l = node.getChild(0);
+		AST r = node.getChild(1);
+
+		// Visits each expression and get their registers
+		int y = visit(l);
+		int z = visit(r);
+
+		// Result register
+		int x = newIntReg();
+
+		// Emits the 'not equals' operation for the corresponding type
+		switch (l.type) {
+			case INT_TYPE:			emit(NEQi, x, y, z);	break;
+			case FLOAT32_TYPE:		emit(NEQf, x, y, z);	break;
+			case BOOL_TYPE:			emit(NEQi, x, y, z);	break;
+			case STRING_TYPE:		emit(NEQs, x, y, z);	break;
+			default:
+				System.err.printf("Invalid type: %s!\n", l.type.toString());
+				System.exit(1);
+		}
+
+	    return x;
 	}
 
 	@Override
 	protected Integer visitLess(AST node) {
-		return null;
+		AST l = node.getChild(0);
+		AST r = node.getChild(1);
+
+		// Visits each expression and get their registers
+		int y = visit(l);
+		int z = visit(r);
+
+		// Result register
+		int x = newIntReg();
+
+		// Emits the 'less than' for the corresponding type
+		switch (l.type) {
+			case INT_TYPE:			emit(LTHi, x, y, z);	break;
+			case FLOAT32_TYPE:		emit(LTHf, x, y, z);	break;
+			case BOOL_TYPE:			emit(LTHi, x, y, z);	break;
+			case STRING_TYPE:		emit(LTHs, x, y, z);	break;
+			default:
+				System.err.printf("Invalid type: %s!\n", l.type.toString());
+				System.exit(1);
+		}
+
+	    return x;
 	}
 
 	@Override
 	protected Integer visitLessOrEquals(AST node) {
-		return null; 
+		AST l = node.getChild(0);
+		AST r = node.getChild(1);
+
+		// Visits each expression and get their registers
+		int y = visit(l);
+		int z = visit(r);
+
+		// Result register
+		int x = newIntReg();
+
+		// Emits the 'less than or equals to' for the corresponding type
+		switch (l.type) {
+			case INT_TYPE:			emit(LTEi, x, y, z);	break;
+			case FLOAT32_TYPE:		emit(LTEf, x, y, z);	break;
+			case BOOL_TYPE:			emit(LTEi, x, y, z);	break;
+			case STRING_TYPE:		emit(LTEs, x, y, z);	break;
+			default:
+				System.err.printf("Invalid type: %s!\n", l.type.toString());
+				System.exit(1);
+		}
+
+	    return x;
 	}
 
 	@Override
 	protected Integer visitGreater(AST node) {
-		return null;  
+		AST l = node.getChild(0);
+		AST r = node.getChild(1);
+
+		// Visits each expression and get their registers
+		int y = visit(l);
+		int z = visit(r);
+
+		// Result register
+		int x = newIntReg();
+
+		// Emits the 'greater than' for the corresponding type
+		switch (l.type) {
+			case INT_TYPE:			emit(GTHi, x, y, z);	break;
+			case FLOAT32_TYPE:		emit(GTHf, x, y, z);	break;
+			case BOOL_TYPE:			emit(GTHi, x, y, z);	break;
+			case STRING_TYPE:		emit(GTHs, x, y, z);	break;
+			default:
+				System.err.printf("Invalid type: %s!\n", l.type.toString());
+				System.exit(1);
+		}
+
+	    return x;
 	}
 
 	@Override
 	protected Integer visitGreaterOrEquals(AST node) {
-		return null; 
+		AST l = node.getChild(0);
+		AST r = node.getChild(1);
+
+		// Visits each expression and get their registers
+		int y = visit(l);
+		int z = visit(r);
+
+		// Result register
+		int x = newIntReg();
+
+		// Emits the 'greater than or equals to' for the corresponding type
+		switch (l.type) {
+			case INT_TYPE:			emit(GTEi, x, y, z);	break;
+			case FLOAT32_TYPE:		emit(GTEf, x, y, z);	break;
+			case BOOL_TYPE:			emit(GTEi, x, y, z);	break;
+			case STRING_TYPE:		emit(GTEs, x, y, z);	break;
+			default:
+				System.err.printf("Invalid type: %s!\n", l.type.toString());
+				System.exit(1);
+		}
+
+	    return x;
 	}
 
 	/*------------------------------------------------------------------------------*
