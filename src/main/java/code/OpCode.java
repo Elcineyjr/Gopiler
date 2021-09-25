@@ -26,8 +26,8 @@ public enum OpCode {
     DIVi("DIVi", 3),	// DIVi ix, iy, iz	; ix <- iy / iz
     DIVf("DIVf", 3),	// DIVf fx, fy, fz	; fx <- fy / fz
 
-	MODi("MODi", 1),	// MODi ix, iy, iz	; ix <- iy % iz
-	MODf("MODf", 1),	// MODf fx, fy, fz	; fx <- fy % fz
+	MODi("MODi", 3),	// MODi ix, iy, iz	; ix <- iy % iz
+	MODf("MODf", 3),	// MODf fx, fy, fz	; fx <- fy % fz
 
 	/*------------------------------------------------------------------------------*
 	 * Relational ops

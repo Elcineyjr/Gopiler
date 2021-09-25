@@ -82,7 +82,7 @@ public final class CodeGen extends ASTBaseVisitor<Integer> {
 	}
 
     /*------------------------------------------------------------------------------*
-	 *	AST Traversal
+	 *	Registers
 	 *------------------------------------------------------------------------------*/
 	
 	private int newIntReg() {
@@ -379,27 +379,107 @@ public final class CodeGen extends ASTBaseVisitor<Integer> {
 	
 	@Override
 	protected Integer visitStar(AST node) {
-		return null;
+		// Visits each expression and get their registers
+	    int y = visit(node.getChild(0));
+	    int z = visit(node.getChild(1));
+
+		// Result register
+		int x;
+
+		// Emits the 'multiply' for the corresponding type
+	    if (node.type == Type.FLOAT32_TYPE) {
+	        x = newFloatReg();
+	        emit(MULf, x, y, z);
+	    } else {
+	        x = newIntReg();
+	        emit(MULi, x, y, z);
+	    }
+
+	    return x;
 	}
 
 	@Override
 	protected Integer visitDiv(AST node) {
-		return null;
+		// Visits each expression and get their registers
+	    int y = visit(node.getChild(0));
+	    int z = visit(node.getChild(1));
+
+		// Result register
+		int x;
+
+		// Emits the 'division' for the corresponding type
+	    if (node.type == Type.FLOAT32_TYPE) {
+	        x = newFloatReg();
+	        emit(DIVf, x, y, z);
+	    } else {
+	        x = newIntReg();
+	        emit(DIVi, x, y, z);
+	    }
+
+	    return x;
 	}
 
 	@Override
 	protected Integer visitMod(AST node) {
-		return null; 
+		// Visits each expression and get their registers
+	    int y = visit(node.getChild(0));
+	    int z = visit(node.getChild(1));
+
+		// Result register
+		int x;
+
+		// Emits the 'modulus' for the corresponding type
+	    if (node.type == Type.FLOAT32_TYPE) {
+	        x = newFloatReg();
+	        emit(MODf, x, y, z);
+	    } else {
+	        x = newIntReg();
+	        emit(MODi, x, y, z);
+	    }
+
+	    return x;
 	}
 
 	@Override
 	protected Integer visitPlus(AST node) {
-		return null;
+		// Visits each expression and get their registers
+	    int y = visit(node.getChild(0));
+	    int z = visit(node.getChild(1));
+
+		// Result register
+		int x;
+
+		// Emits the 'addition' for the corresponding type
+	    if (node.type == Type.FLOAT32_TYPE) {
+	        x = newFloatReg();
+	        emit(ADDf, x, y, z);
+	    } else {
+	        x = newIntReg();
+	        emit(ADDi, x, y, z);
+	    }
+
+	    return x;
 	}
 
 	@Override
 	protected Integer visitMinus(AST node) {
-		return null;
+		// Visits each expression and get their registers
+	    int y = visit(node.getChild(0));
+	    int z = visit(node.getChild(1));
+
+		// Result register
+		int x;
+
+		// Emits the 'subtraction' for the corresponding type
+	    if (node.type == Type.FLOAT32_TYPE) {
+	        x = newFloatReg();
+	        emit(SUBf, x, y, z);
+	    } else {
+	        x = newIntReg();
+	        emit(SUBi, x, y, z);
+	    }
+
+	    return x;
 	}
 
 
