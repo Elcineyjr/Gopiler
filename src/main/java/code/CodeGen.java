@@ -715,11 +715,68 @@ public final class CodeGen extends ASTBaseVisitor<Integer> {
 
 	@Override
 	protected Integer visitWhile(AST node) {
+		int size = node.getChildren().size();
+
+		if (size == 2) {
+			int conditionInstr = nextInstr;
+
+			// Visits the condition and get the result resgister
+			int conditionReg = visit(node.getChild(0));
+
+			int branchOnFalseInstr = nextInstr;
+			emit(BOFb, conditionReg, 0); // Leave offset empty now, will be backpatched.
+	
+			int beginWhile = nextInstr;
+			visit(node.getChild(1)); // Emit code for body.
+
+			// Emits a 'jump' operation back to the condition instruction
+			emit(JUMP, conditionInstr);
+
+			// Backpatch the condition 'branch on false'
+			// so it jumps to either the FALSE block or after the if statement
+			backpatchBranch(branchOnFalseInstr, nextInstr - beginWhile + 1);
+		}
+
+		// Doenst have a condition to be evaluated
+		if(size == 1) {
+			int beginWhile = nextInstr;
+
+			// Visits the statement section
+			visit(node.getChild(0));
+
+			// Emits a 'jump' operation back to the start of while block
+			emit(JUMP, beginWhile);
+		}
+
 		return null; 
 	}
 
 	@Override
 	protected Integer visitFor(AST node) {
+		// Visits the declare assign node
+		visit(node.getChild(0));
+
+		// Visits the condition and get the result resgister
+		int conditionInstr = nextInstr;
+		int conditionReg = visit(node.getChild(1));
+
+		int branchOnFalseInstr = nextInstr;
+		emit(BOFb, conditionReg, 0); // Leave offset empty now, will be backpatched.
+
+		// Saves the start of the statements block, then generate its code
+		int beginFor = nextInstr;
+		visit(node.getChild(3));
+
+		// Visits the var increment node
+		visit(node.getChild(2));
+
+		// Emits a 'jump' operation back to the condition instruction
+		emit(JUMP, conditionInstr);
+
+		// Backpatch the condition 'branch on false'
+		// so it jumps to either the statements block or after the for at all
+		backpatchBranch(branchOnFalseInstr, nextInstr - beginFor + 1);
+
 		return null; 
 	}
 	
