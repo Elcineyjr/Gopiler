@@ -41,7 +41,7 @@ public final class CodeGen extends ASTBaseVisitor<Integer> {
 
 	void dumpProgram() {
 	    for (int addr = 0; addr < nextInstr; addr++) {
-	    	System.out.printf("%s\n", code[addr].toString());
+	    	System.out.printf("%d:	%s\n", addr, code[addr].toString());
 	    }
 	}
 
@@ -669,11 +669,47 @@ public final class CodeGen extends ASTBaseVisitor<Integer> {
 
 	@Override
 	protected Integer visitIf(AST node) {
+		// Visits the condition and get the result resgister
+	    int conditionReg = visit(node.getChild(0));
+
+	    int branchOnFalseInstr = nextInstr;
+	    emit(BOFb, conditionReg, 0); // Leave offset empty now, will be backpatched.
+
+	    // Saves the start of the TRUE block, then generate its code
+	    int trueBranchStart = nextInstr;
+	    visit(node.getChild(1));
+
+	    int falseBranchStart;
+		// Checks if there is an ELSE
+	    if (node.getChildren().size() == 3) {
+	        // Emits a 'jump' operation meaning its the end of the TRUE block
+	        int endOfTrueBlockJumpInstr = nextInstr;
+	        emit(JUMP, 0); // Leave address empty now, will be backpatched.
+			
+	        falseBranchStart = nextInstr;
+			
+			// Visits the FALSE block and generate its code
+	        visit(node.getChild(2)); 
+			
+	        // Backpatch the jump from the end of the TRUE block
+			// so it jumps to after the FALSE block
+	        backpatchJump(endOfTrueBlockJumpInstr, nextInstr);
+	    } else {
+	    	falseBranchStart = nextInstr;
+	    }
+
+	    // Backpatch the condition 'branch on false'
+		// so it jumps to either the FALSE block or after the if statement
+	    backpatchBranch(branchOnFalseInstr, falseBranchStart - trueBranchStart + 1);
+
 		return null;
 	}
 
 	@Override
 	protected Integer visitElse(AST node) {
+		// Visits the statement section node
+		visit(node.getChild(0));
+
 		return null;
 	}
 
