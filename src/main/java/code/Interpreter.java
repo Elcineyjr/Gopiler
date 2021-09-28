@@ -500,7 +500,6 @@ public class Interpreter extends ASTBaseVisitor<Void> {
 		} 	
 	}
 
-	// TODO: handle arrays
 	@Override
 	protected Void visitVarDecl(AST node) {
 		// Checks if the variable was assigned a value at declaration
@@ -700,21 +699,6 @@ public class Interpreter extends ASTBaseVisitor<Void> {
 	}
 	
 	@Override
-	protected Void visitSwitch(AST node) {
-		return null; 
-	}
-
-	@Override
-	protected Void visitCase(AST node) {
-		return null; 
-	}
-
-	@Override
-	protected Void visitDefault(AST node) {
-		return null; 
-	}
-
-	@Override
 	protected Void visitFuncCall(AST node) {
 		int funcIdx = node.intData;
 		String name = ft.getName(funcIdx);
@@ -722,7 +706,6 @@ public class Interpreter extends ASTBaseVisitor<Void> {
 		FunctionRef ref = findFuncRef(name);
 		AST expressionList = node.getChild(0);
 
-		// TODO: handle arrays
 		if (ref.args != null) {
 			// Assigns every value from the expression list to its corresponding arg
 			for(int i = 0; i < ref.args.getChildren().size(); i++) {
@@ -811,7 +794,6 @@ public class Interpreter extends ASTBaseVisitor<Void> {
 		return null; 
 	}
 
-	// TODO: handle arrays
 	@Override
 	protected Void visitVarUse(AST node) {
 		int varIdx = node.intData;

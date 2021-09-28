@@ -182,16 +182,6 @@ public class SemanticChecker extends GoParserBaseVisitor<AST> {
 		}
     }
 
-	private void checkCase(int lineNo, Type t1, Type t2) {
-		if(t1 != t2) {
-			System.out.printf(
-				"SEMANTIC ERROR (%d): incompatible types for case, expected '%s' but expression is '%s'.\n",
-				lineNo, t1.toString(), t2.toString()
-			);
-			System.exit(1);
-		}
-	}
-
 	// ----- Specific for when declaring variables
 
 	private void typeInitError(int lineNo, String varName, Type t1, Type t2) {
@@ -488,32 +478,12 @@ public class SemanticChecker extends GoParserBaseVisitor<AST> {
 		return node;
 	}
 
-	// Visits the rule func_main: FUNC MAIN L_PAREN func_args? R_PAREN var_types? statement_section
+	// Visits the rule func_main: FUNC MAIN L_PAREN R_PAREN statement_section
 	@Override
 	public AST visitFunc_main(GoParser.Func_mainContext ctx) {
-		if(ctx.var_types() != null) {
-			// Defines lastDeclType 
-			visit(ctx.var_types());
-		} else {
-			// Function has no return type
-			lastDeclType = Type.NO_TYPE;
-		}
-
-		// Saves the func type before the lastDeclType be overwritten
-		// by the args declaration
-		lastDeclFuncType = lastDeclType;
-
-		AST funcArgs = null;
-		if(ctx.func_args() != null) {
-			// Defines lastDeclFuncArgsSize
-			funcArgs = visit(ctx.func_args());
-		} else {
-			// Function has no args
-			lastDeclFuncArgsSize = 0;
-		}
-		
 		// Defines the lastDeclFuncName for future var scope checking
 		lastDeclFuncName = "main";
+		lastDeclFuncType = Type.NO_TYPE;
 
 		// Recursively visits rule for error checking
 		AST statements = visit(ctx.statement_section());
@@ -527,7 +497,6 @@ public class SemanticChecker extends GoParserBaseVisitor<AST> {
 		AST mainFunc = new AST(NodeKind.FUNC_MAIN_NODE, idx, lastDeclFuncType);
 
 		// Adds the statements as function's child
-		mainFunc.addChild(funcArgs);
 		mainFunc.addChild(statements);
 
 		return mainFunc;
@@ -675,64 +644,6 @@ public class SemanticChecker extends GoParserBaseVisitor<AST> {
 			return AST.newSubtree(NodeKind.MINUS_MINUS_NODE, Type.NO_TYPE, identifier);
 		}
 	}
-
-	// // Visits the rule switch_statement: SWITCH id? L_CURLY case_statement R_CURLY
-	// @Override
-	// public Type visitSwitch_statement(GoParser.Switch_statementContext ctx) {
-	// 	// Checks if there is a identifier or func call to be evaluated
-	// 	// and recursively visits the rule for error checking
-	// 	if(ctx.id() != null) visit(ctx.id());	
-	// 	if(ctx.func_call() != null) visit(ctx.func_call());	
-
-	// 	// Recursively visits the case_statement for error checking
-	// 	visit(ctx.case_statement());
-
-	// 	return Type.NO_TYPE;
-	// }
-
-	// // Visits the rule case_statement: (CASE expression COLON statement*)* (DEFAULT COLON statement*)?
-	// @Override
-	// public Type visitCase_statement(GoParser.Case_statementContext ctx) {
-	// 	// Get the parent node of the rule, in this case, the switch node
-	// 	GoParser.Switch_statementContext parent = (GoParser.Switch_statementContext) ctx.parent;
-		
-	// 	// Dont think thats gonna happen, but there it is
-	// 	if(parent == null) {
-	// 		System.out.println("Case statement has no parent node. Exiting...");
-	// 		System.exit(1);
-	// 	}
-
-	// 	// Default type for the case expression if nothing is being evaluated
-	// 	Type caseType = Type.BOOL_TYPE;
-
-	// 	// Checks if there is a identifier or func_call to be evaluated
-	// 	// and set the case type to the same type as the identifier
-	// 	if(parent.id() != null) caseType = visit(parent.id());	
-	// 	if(parent.func_call() != null) caseType = visit(parent.func_call());	
-
-	// 	// Recursively visits every expression for each case to handle errors
-	// 	for(int i = 0; i < ctx.expression().size(); i++) {
-	// 		// Get the current expression type
-	// 		Type expressionType = visit(ctx.expression(i));
-			
-	// 		// Check if the expression type matches with the case type
-	// 		checkCase(ctx.CASE().get(i).getSymbol().getLine() , caseType, expressionType);
-	// 	}
-
-	// 	// that will probably cause some problems when trying to figure out
-	// 	// which statement is from which case
-	// 	// Recursively visits every statement for error checking
-	// 	for(GoParser.StatementContext stmt : ctx.statement()) {
-	// 		visit(stmt);
-	// 	}
-
-	// 	// Recursively visits rule for error checking
-	// 	if(ctx.default_statement() != null) { 
-	// 		visit(ctx.default_statement());
-	// 	}
-
-	// 	return Type.NO_TYPE;
-	// }
 	
 	//  Visits the rule func_call: IDENTIFIER L_PAREN expression_list? R_PAREN 
 	@Override

@@ -23,6 +23,10 @@ BIN_PATH=$(SOURCE_PATH)/bin
 # Diretório para os casos de teste
 IN=tests
 
+# Flag para executar a geração de código
+# caso queira se executar o interpretador basta alterar a flag
+flag=-c
+
 all: antlr javac
 	@echo -e "\nDone."
 
@@ -39,15 +43,7 @@ javac:
 	$(JAVAC) $(CLASS_PATH_OPTION) -d $(BIN_PATH) $(SOURCE_PATH)/*/*.java
 
 run:
-	$(JAVA) $(CLASS_PATH_OPTION):$(BIN_PATH) checker/Main $(FILE)
-
-# runall:
-# 	@echo "Scanning $(IN) folder for files..."
-# 	@-for FILE in $(IN)/*.go; do \
-# 	 	echo -e "\nRunning $${FILE}" && \
-# 	 	$(JAVA) $(CLASS_PATH_OPTION):$(BIN_PATH) checker/Main $${FILE}; \
-# 	done;
-
+	$(JAVA) $(CLASS_PATH_OPTION):$(BIN_PATH) checker/Main $(file) $(flag)
 
 clean:
 	@rm -rf $(GEN_PATH) $(BIN_PATH) $(SOURCE_PATH)/.antlr target/ out/ *.dot *.pdf

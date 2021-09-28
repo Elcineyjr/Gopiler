@@ -40,9 +40,6 @@ public enum NodeKind {
     ELSE_NODE,
     WHILE_NODE,
     FOR_NODE,
-    SWITCH_NODE,
-    CASE_NODE,
-    DEFAULT_NODE,
     FUNC_CALL_NODE,
 	 
     // Function nodes
@@ -93,9 +90,6 @@ public enum NodeKind {
             case ELSE_NODE:                 return "else";
             case WHILE_NODE:                return "while";
             case FOR_NODE:                  return "for";
-            case SWITCH_NODE:               return "switch";
-            case CASE_NODE:                 return "case";
-            case DEFAULT_NODE:              return "default";
             case FUNC_CALL_NODE:            return "func_call";
             case STATEMENT_SECTION_NODE:    return "statement_sect";
             case RETURN_NODE:               return "return";

@@ -15,6 +15,7 @@ import parser.GoParser;
 public class Main {
 	public static void main(String[] args) throws IOException {
 		CharStream input = CharStreams.fromFileName(args[0]);
+		String flag = args[1];
 
 		GoLexer lexer = new GoLexer(input);
 
@@ -31,13 +32,13 @@ public class Main {
 		SemanticChecker checker = new SemanticChecker();
 		checker.visit(tree);
 
-		// checker.printAST();
-		
-		// Interpreter interpreter = new Interpreter(checker.st, checker.vt, checker.ft);
-		// interpreter.execute(checker.root);
-
-		CodeGen codeGen = new CodeGen(checker.st, checker.vt);
-		codeGen.execute(checker.root);
+		if(flag.equals("-i")){
+			Interpreter interpreter = new Interpreter(checker.st, checker.vt, checker.ft);
+			interpreter.execute(checker.root);
+		} else {
+			CodeGen codeGen = new CodeGen(checker.st, checker.vt);
+			codeGen.execute(checker.root);
+		}
 	}
 
 }

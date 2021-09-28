@@ -717,6 +717,7 @@ public final class CodeGen extends ASTBaseVisitor<Integer> {
 	protected Integer visitWhile(AST node) {
 		int size = node.getChildren().size();
 
+		// Has both the condition and statement section
 		if (size == 2) {
 			int conditionInstr = nextInstr;
 
@@ -733,7 +734,7 @@ public final class CodeGen extends ASTBaseVisitor<Integer> {
 			emit(JUMP, conditionInstr);
 
 			// Backpatch the condition 'branch on false'
-			// so it jumps to either the FALSE block or after the if statement
+			// so it jumps to after the statements block
 			backpatchBranch(branchOnFalseInstr, nextInstr - beginWhile + 1);
 		}
 
@@ -756,7 +757,7 @@ public final class CodeGen extends ASTBaseVisitor<Integer> {
 		// Visits the declare assign node
 		visit(node.getChild(0));
 
-		// Visits the condition and get the result resgister
+		// Visits the condition and get the result register
 		int conditionInstr = nextInstr;
 		int conditionReg = visit(node.getChild(1));
 
@@ -774,26 +775,12 @@ public final class CodeGen extends ASTBaseVisitor<Integer> {
 		emit(JUMP, conditionInstr);
 
 		// Backpatch the condition 'branch on false'
-		// so it jumps to either the statements block or after the for at all
+		// so it jumps to after the statements block
 		backpatchBranch(branchOnFalseInstr, nextInstr - beginFor + 1);
 
 		return null; 
 	}
 	
-	@Override
-	protected Integer visitSwitch(AST node) {
-		return null; 
-	}
-
-	@Override
-	protected Integer visitCase(AST node) {
-		return null; 
-	}
-
-	@Override
-	protected Integer visitDefault(AST node) {
-		return null; 
-	}
 
 	@Override
 	protected Integer visitFuncCall(AST node) {
