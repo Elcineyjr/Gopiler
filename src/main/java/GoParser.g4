@@ -22,7 +22,7 @@ package_import:
 ;
 
 func_main:
-  FUNC MAIN L_PAREN func_args? R_PAREN var_types? statement_section
+  FUNC MAIN L_PAREN R_PAREN statement_section
 ;
 
 // Declarations
