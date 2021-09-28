@@ -14,7 +14,7 @@ func main() {
 		i = i + 1
 	}
 
-	fmt.Println("Counting until 3...")
+	fmt.Println("Counting from 0 to 9...")
 	// A classic initial/condition/after for loop.
 	for j := 0; j < 10; j++ {
 
