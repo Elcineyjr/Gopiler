@@ -24,7 +24,7 @@ BIN_PATH=$(SOURCE_PATH)/bin
 IN=tests
 
 # Flag para executar a geração de código
-# caso queira se executar o interpretador basta alterar a flag
+# caso queira se executar o interpretador basta alterar a flag para -i
 flag=-c
 
 all: antlr javac
@@ -37,13 +37,13 @@ antlr:
 	$(ANTLR4) -no-listener -visitor -package parser -Xexact-output-dir -o $(GEN_PATH) $(SOURCE_PATH)/GoLexer.g4 $(SOURCE_PATH)/GoParser.g4
 
 javac:
-	@echo -e "\nCompiling checker..."
+	@echo -e "\nCompiling Interpreter and CodeGen..."
 	@rm -rf $(BIN_PATH)
 	@mkdir $(BIN_PATH)
-	$(JAVAC) $(CLASS_PATH_OPTION) -d $(BIN_PATH) $(SOURCE_PATH)/*/*.java
+	$(JAVAC) $(CLASS_PATH_OPTION) -d $(BIN_PATH) $(SOURCE_PATH)/Main.java $(SOURCE_PATH)/*/*.java
 
 run:
-	$(JAVA) $(CLASS_PATH_OPTION):$(BIN_PATH) checker/Main $(file) $(flag)
+	$(JAVA) $(CLASS_PATH_OPTION):$(BIN_PATH) Main $(file) $(flag)
 
 clean:
 	@rm -rf $(GEN_PATH) $(BIN_PATH) $(SOURCE_PATH)/.antlr target/ out/ *.dot *.pdf

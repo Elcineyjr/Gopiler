@@ -13,9 +13,9 @@ import typing.Type;
 
 public class SemanticChecker extends GoParserBaseVisitor<AST> {
 
-	protected final StrTable st = new StrTable();
-	protected final VarTable vt = new VarTable();
-	protected final FuncTable ft = new FuncTable();
+	public final StrTable st = new StrTable();
+	public final VarTable vt = new VarTable();
+	public final FuncTable ft = new FuncTable();
 
 	Type lastDeclType; // Global variable with the last declared var type 
 	Type lastDeclFuncType; // Global variable with the last declared func type 
@@ -24,7 +24,7 @@ public class SemanticChecker extends GoParserBaseVisitor<AST> {
 	int lastDeclArrayArgsSize; // Global variable with the last declared ARRAY argsSize 
 	int lastExpressionListSize;
 
-	protected AST root;
+	public AST root;
 
 	void printTables() {
 		System.out.print("\n\n");
