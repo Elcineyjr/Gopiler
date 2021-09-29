@@ -29,3 +29,8 @@ There is also the option to run on all files at once, but it will only run with 
 ```bash
 sh runall.sh
 ```
+
+The NSTM has also its simulator, that will execute the given `.nstm` file
+```bash
+make runsim file=<file_name>.nstm
+```

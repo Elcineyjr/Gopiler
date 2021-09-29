@@ -27,7 +27,7 @@ IN=tests
 # caso queira se executar o interpretador basta alterar a flag para -i
 flag=-c
 
-all: antlr javac
+all: antlr javac simulator
 	@echo -e "\nDone."
 
 # Documentação para a flag -Xexact-output-dir pode ser
@@ -44,6 +44,13 @@ javac:
 
 run:
 	$(JAVA) $(CLASS_PATH_OPTION):$(BIN_PATH) Main $(file) $(flag)
+
+simulator:
+	@echo -e "\nCompiling the NSTM Simulator..."
+	gcc -Wall -Wconversion -o NSTMsimulator nstm/*.c 
+
+runsim:
+	./NSTMsimulator < $(file)
 
 clean:
 	@rm -rf $(GEN_PATH) $(BIN_PATH) $(SOURCE_PATH)/.antlr target/ out/ *.dot *.pdf
