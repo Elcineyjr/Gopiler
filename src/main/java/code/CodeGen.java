@@ -41,7 +41,7 @@ public final class CodeGen extends ASTBaseVisitor<Integer> {
 
 	void dumpProgram() {
 	    for (int addr = 0; addr < nextInstr; addr++) {
-	    	System.out.printf("%d:	%s\n", addr, code[addr].toString());
+	    	System.out.printf("%s\n", code[addr].toString());
 	    }
 	}
 
