@@ -8,12 +8,24 @@ Open the terminal and compile the parser with
 make
 ```
 
-Run it by either providing a file 
+The `Main.java` file expects a flag that will determine how the AST will be used.
+
+Flags:
+  * `-c` (default)
+  * `-i`
+
+So to run the project would be
 ```bash
-make run FILE=<file_path>
+# Runs the Interpreter
+make run file=<file_path> flag=-i
+
+# Either one will run the CodeGen
+make run file=<file_path>
+make run file=<file_path> flag=-c
 ```
 
-or running on all files from the tests folder
+
+There is also the option to run on all files at once, but it will only run with the `-c` flag since the interpreter would cause interruptions when waiting for input
 ```bash
 sh runall.sh
 ```
